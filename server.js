@@ -1382,7 +1382,9 @@ app.use(
 
         secure:
             process.env.NODE_ENV ===
-            "production"
+            "production",
+
+        overwrite: true
     })
 );
 
@@ -3402,15 +3404,23 @@ app.get(
 
             const member = await memberResponse.json();
 
-            const roles =
-                Array.isArray(
-                    member.roles
-                )
-
-                    ? member.roles
-                        .map(String)
-
+            const allDiscordRoles =
+                Array.isArray(member.roles)
+                    ? member.roles.map(String)
                     : [];
+
+            // cookie-session salvează întreaga sesiune în cookie. Pe Cloudflare/Chrome,
+            // un cookie prea mare este respins și /dashboard vede utilizatorul ca delogat,
+            // ceea ce poate produce ERR_TOO_MANY_REDIRECTS. Păstrăm în sesiune doar
+            // rolurile de care aplicația chiar are nevoie pentru permisiuni.
+            const sessionRoleIds = new Set([
+                ...DIICOT_ROLES.map(role => String(role.id)),
+                String(TESTER_DIICOT_ROLE_ID)
+            ]);
+
+            const roles = allDiscordRoles.filter(roleId =>
+                sessionRoleIds.has(String(roleId))
+            );
 
             const rank =
                 getHighestDIICOTRole(
