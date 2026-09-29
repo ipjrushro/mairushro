@@ -22,9 +22,58 @@ header{height:76px;position:fixed;inset:0 0 auto;z-index:50;background:rgba(3,7,
 .newsGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.notice{min-height:145px;padding:19px;border:1px solid rgba(255,255,255,.075);border-radius:15px;background:linear-gradient(145deg,rgba(10,19,33,.82),rgba(5,11,20,.78));position:relative;overflow:hidden;transition:.25s}.notice:hover{transform:translateY(-4px);border-color:rgba(75,151,255,.22);box-shadow:0 20px 45px rgba(0,0,0,.22)}.notice:before{content:"";position:absolute;width:160px;height:160px;border-radius:50%;right:-60px;top:-80px;background:rgba(35,126,255,.055);filter:blur(12px)}.noticeTag{font-size:7px;letter-spacing:.15em;color:#6faeff;font-weight:900}.notice h3{font-family:Oswald;font-size:17px;margin:9px 0 7px}.notice p{color:#8595a8;font-size:10px;line-height:1.55;margin:0}.notice time{display:block;margin-top:14px;color:#526177;font-size:8px}.empty{grid-column:1/-1;min-height:165px;border:1px dashed rgba(255,255,255,.09);border-radius:15px;display:grid;place-items:center;text-align:center;color:#64758b;background:rgba(8,15,26,.55)}.empty b{display:block;color:#8d9caf;font-family:Oswald;font-size:18px;margin-bottom:5px}
 @media(max-width:1080px){.hero{height:auto;grid-template-columns:1fr}.agency{min-height:620px}.police .heroInner,.diicot .heroInner{margin:auto;text-align:center}.police .desc,.diicot .desc,.police .accent,.diicot .accent{margin-left:auto;margin-right:auto}.split,.hubCore{display:none}.modules{margin-top:20px}.moduleGrid{grid-template-columns:repeat(2,1fr)}.newsGrid{grid-template-columns:1fr 1fr}}
 @media(max-width:650px){header{height:68px}.nav{width:calc(100% - 26px)}.brand small,.account span{display:none}.hero{padding-top:68px}.agency{min-height:560px}.heroInner{width:88%}.title{font-size:45px}.moduleGrid,.newsGrid{grid-template-columns:1fr}.module{height:190px}.newsHead{align-items:flex-start;gap:18px;flex-direction:column}.tabs{flex-wrap:wrap}}
+
+/* ===== HUB MAI / MEMBRI REALI ===== */
+#membersView{display:none;position:relative;z-index:3;min-height:calc(100vh - 76px);padding-top:92px}
+body.members-open #homeView{display:none}
+body.members-open #membersView{display:block}
+.membersHero{position:relative;z-index:2;max-width:1500px;margin:auto;padding:48px 24px 26px;text-align:center}
+.membersHero .badge{display:inline-flex;gap:9px;align-items:center;border:1px solid rgba(116,92,229,.25);background:rgba(85,57,172,.09);padding:8px 12px;border-radius:99px;color:#ad96ff;font-size:8px;letter-spacing:.17em;text-transform:uppercase}
+.membersHero h1{font-family:Oswald;font-size:48px;letter-spacing:.12em;margin:17px 0 8px;text-transform:uppercase}
+.membersHero h1 span{background:linear-gradient(90deg,#55a2ff,#d9c4ff,#f2bd35);-webkit-background-clip:text;color:transparent}
+.membersHero p{color:#71839a;font-size:11px;letter-spacing:.04em}
+.membersHero .stats{display:flex;justify-content:center;gap:9px;margin-top:22px}
+.membersHero .stat{min-width:125px;padding:11px 16px;border-radius:11px;background:rgba(9,18,31,.78);border:1px solid rgba(255,255,255,.07);font-size:9px;color:#71839a}
+.membersHero .stat b{font-size:17px;color:#fff;margin-right:6px}
+#membersView .controls{position:relative;z-index:3;max-width:1500px;margin:0 auto;padding:18px 24px 22px;display:grid;grid-template-columns:1fr 240px;gap:12px}
+#membersView .search,#membersView .select{height:49px;border-radius:12px;border:1px solid rgba(255,255,255,.075);background:rgba(13,25,42,.88);color:#fff;padding:0 17px;outline:none}
+#membersView .search::placeholder{color:#71839a}
+#membersView .board{position:relative;z-index:3;max-width:1500px;margin:auto;padding:0 24px 70px;display:grid;grid-template-columns:1fr 1fr;gap:30px}
+#membersView .dept{min-width:0}
+#membersView .deptHead{height:45px;display:flex;align-items:center;gap:11px;border-bottom:1px solid rgba(255,255,255,.09);margin-bottom:17px;font-family:Oswald;letter-spacing:.16em;text-transform:uppercase}
+#membersView .deptHead i{width:8px;height:8px;border-radius:50%}
+#membersView .police .deptHead{color:#4798ff} #membersView .police .deptHead i{background:#2588ff;box-shadow:0 0 15px #2588ff}
+#membersView .diicot .deptHead{color:#e8b63b} #membersView .diicot .deptHead i{background:#f0b41d;box-shadow:0 0 15px #f0b41d}
+#membersView .deptHead span{font-family:Inter;color:#617189;font-size:8px;letter-spacing:.06em;text-transform:none}
+#membersView .rank{margin:0 0 21px}
+#membersView .rankTitle{display:flex;align-items:center;gap:8px;font-family:Oswald;font-size:14px;letter-spacing:.08em;color:#ff5360;text-transform:uppercase;margin:0 0 9px}
+#membersView .rankTitle:before{content:"";width:3px;height:20px;border-radius:3px;background:#ff4655;box-shadow:0 0 12px rgba(255,70,85,.5)}
+#membersView .rankTitle small{font-family:Inter;color:#66778f;font-size:8px}
+#membersView .member{height:76px;margin:0 0 7px;border:1px solid rgba(255,77,89,.16);border-left:3px solid #ff4655;border-radius:0 12px 12px 0;background:linear-gradient(110deg,rgba(21,34,53,.92),rgba(13,24,40,.78));display:flex;align-items:center;padding:10px 14px;gap:13px;position:relative;overflow:hidden;transform-style:preserve-3d;transition:border-color .2s,box-shadow .2s}
+#membersView .member:after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(250px circle at var(--x,50%) var(--y,50%),rgba(255,255,255,.075),transparent 45%)}
+#membersView .member:hover{border-color:rgba(255,87,100,.36);box-shadow:0 14px 35px rgba(0,0,0,.23)}
+#membersView .avatar,#membersView .avatarFallback{width:49px;height:49px;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:#162238;position:relative;z-index:2}
+#membersView .avatar{object-fit:cover}
+#membersView .avatarFallback{display:grid;place-items:center;font-family:Oswald;color:#ff626e}
+#membersView .info{min-width:0;position:relative;z-index:2}
+#membersView .info strong{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:7px}
+#membersView .chips{display:flex;gap:6px;flex-wrap:wrap}
+#membersView .chip{padding:4px 8px;border-radius:4px;border:1px solid rgba(255,70,85,.38);color:#ff5360;font-family:Oswald;font-size:9px;letter-spacing:.08em;background:rgba(255,70,85,.05)}
+#membersView .chip.rankChip{border-color:rgba(240,180,29,.34);color:#e9b83c;background:rgba(240,180,29,.05)}
+#membersView .member.pol{border-left-color:#2588ff;border-color:rgba(37,136,255,.16)}
+#membersView .member.pol .chip:first-child{border-color:rgba(37,136,255,.38);color:#55a2ff;background:rgba(37,136,255,.06)}
+#membersView .empty{padding:35px;border:1px dashed rgba(255,255,255,.08);border-radius:13px;color:#65758b;text-align:center;font-size:11px}
+#membersView .loading{grid-column:1/-1;padding:70px;text-align:center;color:#71839a}
+#membersView .spinner{width:34px;height:34px;border:2px solid rgba(255,255,255,.08);border-top-color:#6aaaff;border-radius:50%;margin:0 auto 14px;animation:memberSpin .8s linear infinite}
+@keyframes memberSpin{to{transform:rotate(360deg)}}
+.membersBack{display:inline-flex;margin-top:18px;padding:9px 13px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.035);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#91a0b5}
+@media(max-width:900px){#membersView .board{grid-template-columns:1fr}#membersView .controls{grid-template-columns:1fr}}
+@media(max-width:520px){.membersHero h1{font-size:31px}.membersHero .stats{flex-wrap:wrap}#membersView .board,#membersView .controls{padding-left:13px;padding-right:13px}}
+
 </style></head>
 <body><canvas id="fx"></canvas><div class="noise"></div>
 <header><div class="nav"><a class="brand" href="/"><span class="brandLogo"><img src="/uploads/politia-romana-logo.png"></span><span><b>HUB MAI</b><small>RUSH ROMÂNIA · CENTRU OPERAȚIONAL</small></span></a><div id="auth"><a class="account" href="/auth/discord"><i class="online" style="background:#7289da;box-shadow:0 0 12px #7289da"></i><span>AUTENTIFICARE DISCORD</span></a></div></div></header>
+<div id="homeView">
 
 <section class="hero" id="hero">
 <article class="agency police"><div class="agencyBg"></div><div class="shade"></div><div class="spot"></div><div class="heroInner">
@@ -39,13 +88,46 @@ header{height:76px;position:fixed;inset:0 0 auto;z-index:50;background:rgba(3,7,
 <a class="module" href="/dashboard?section=docs"><div class="moduleBg" style="background-image:url('/uploads/politia-secondary.jpg')"></div><div class="moduleIcon">◇</div><div class="moduleArrow">›</div><div class="moduleText"><b>Regulament MAI</b><span>Accesează documentele și regulamentele structurii.</span></div></a>
 <a class="module purple" href="/dashboard?section=penal-code"><div class="moduleBg" style="background-image:url('/uploads/card-cod-penal-hd.jpg')"></div><div class="moduleIcon">⚖</div><div class="moduleArrow">›</div><div class="moduleText"><b>Cod Penal</b><span>Deschide direct secțiunea Cod Penal din dashboard.</span></div></a>
 <a class="module purple" href="/dashboard?section=leadership"><div class="moduleBg" style="background-image:url('/uploads/card-admin-hd.jpg')"></div><div class="moduleIcon">▤</div><div class="moduleArrow">›</div><div class="moduleText"><b>Responsabilități MAI</b><span>Conducere, anunțuri și administrarea responsabilităților.</span></div></a>
-<a class="module" href="/dashboard?section=personnel"><div class="moduleBg" style="background-image:url('/uploads/card-personal-hd.jpg')"></div><div class="moduleIcon">♙</div><div class="moduleArrow">›</div><div class="moduleText"><b>Membri MAI</b><span>Deschide direct personalul și structura activă.</span></div></a>
+<a class="module" href="#membri" data-open-members="1"><div class="moduleBg" style="background-image:url('/uploads/card-personal-hd.jpg')"></div><div class="moduleIcon">♙</div><div class="moduleArrow">›</div><div class="moduleText"><b>Membri MAI</b><span>Deschide direct personalul și structura activă.</span></div></a>
 <a class="module red" href="/dashboard?section=overview&complaint=open"><div class="moduleBg" style="background-image:url('/uploads/card-rapoarte-hd.jpg')"></div><div class="moduleIcon">△</div><div class="moduleArrow">›</div><div class="moduleText"><b>Reclamații</b><span>Deschide formularul pentru o reclamație internă.</span></div></a>
 </div></div></section>
 
 <section class="news"><div class="newsHead"><div class="newsTitle"><i></i><h2>Anunțuri oficiale</h2></div><div class="tabs"><button class="tab active" data-filter="ALL">Toate</button><button class="tab" data-filter="POLITIE">Poliție</button><button class="tab" id="diicotNews">DIICOT ↗</button><button class="tab" data-filter="MAI">MAI</button></div></div><div class="newsGrid" id="newsGrid"><div class="empty"><div><b>Se încarcă anunțurile...</b><span>Conectare la centrul de notificări.</span></div></div></div></section>
 
+
+</div>
+
+<div id="membersView">
+  <section class="membersHero">
+    <div class="badge">◈ Bază de date operațională</div>
+    <h1><span>MEMBRI MAI</span></h1>
+    <p>POLIȚIA ROMÂNĂ × DIICOT · PERSONAL SINCRONIZAT DIN DISCORD</p>
+    <div class="stats"><div class="stat"><b id="allCount">—</b> total</div><div class="stat"><b id="pCount">—</b> poliție</div><div class="stat"><b id="dCount">—</b> diicot</div></div>
+    <a class="membersBack" href="#acasa" id="backHome">← Înapoi la HUB MAI</a>
+  </section>
+  <div class="controls"><input class="search" id="memberSearch" placeholder="⌕  Caută după nume, callsign sau grad..."><select class="select" id="memberRankFilter"><option value="">Toate gradele</option></select></div>
+  <main class="board" id="memberBoard"><div class="loading"><div class="spinner"></div>Se încarcă membrii reali din Discord...</div></main>
+</div>
 <script>
+
+let HUB_MEMBERS={police:[],diicot:[]}, hubMembersLoaded=false;
+const hmEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const hmInitials=n=>String(n||'?').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase();
+function hmGroup(list){const m=new Map;for(const x of list){if(!m.has(x.rank))m.set(x.rank,[]);m.get(x.rank).push(x)}return [...m.entries()]}
+function hmMember(x,pol){const av=x.avatar?`<img class="avatar" src="${hmEsc(x.avatar)}" onerror="this.outerHTML='<div class=&quot;avatarFallback&quot;>${hmEsc(hmInitials(x.displayName))}</div>'">`:`<div class="avatarFallback">${hmEsc(hmInitials(x.displayName))}</div>`;return `<article class="member ${pol?'pol':''}">${av}<div class="info"><strong>${hmEsc(x.displayName)}</strong><div class="chips"><span class="chip">${hmEsc(x.callsign||'FĂRĂ CALLSIGN')}</span><span class="chip rankChip">${hmEsc(x.rank)}</span></div></div></article>`}
+function hmDept(title,list,cls){let h=`<section class="dept ${cls}"><div class="deptHead"><i></i>${title}<span>${list.length} membri</span></div>`;if(!list.length)return h+'<div class="empty">Niciun membru găsit.</div></section>';for(const [r,ms] of hmGroup(list))h+=`<div class="rank"><h3 class="rankTitle">${hmEsc(r)} <small>(${ms.length})</small></h3>${ms.map(x=>hmMember(x,cls==='police')).join('')}</div>`;return h+'</section>'}
+function hmTilt(){document.querySelectorAll('#membersView .member').forEach(c=>{c.onmousemove=e=>{const r=c.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;c.style.setProperty('--x',x+'px');c.style.setProperty('--y',y+'px');c.style.transform=`perspective(800px) rotateX(${-(y/r.height-.5)*3}deg) rotateY(${(x/r.width-.5)*4}deg) translateY(-2px)`};c.onmouseleave=()=>c.style.transform=''})}
+function hmRender(){const q=document.getElementById('memberSearch').value.toLowerCase().trim(),rf=document.getElementById('memberRankFilter').value;const f=a=>a.filter(x=>(!rf||x.rank===rf)&&(!q||[x.displayName,x.username,x.callsign,x.rank].join(' ').toLowerCase().includes(q)));document.getElementById('memberBoard').innerHTML=hmDept('POLIȚIE',f(HUB_MEMBERS.police),'police')+hmDept('DIICOT',f(HUB_MEMBERS.diicot),'diicot');hmTilt()}
+async function hmLoad(){if(hubMembersLoaded)return;try{const r=await fetch('/api/hub/personnel',{credentials:'include'}),d=await r.json();if(!r.ok)throw new Error(d.error||'Eroare');HUB_MEMBERS=d;allCount.textContent=d.totals.all;pCount.textContent=d.totals.police;dCount.textContent=d.totals.diicot;const ranks=[...new Set([...d.police,...d.diicot].map(x=>x.rank))];memberRankFilter.innerHTML='<option value="">Toate gradele</option>'+ranks.map(x=>`<option>${hmEsc(x)}</option>`).join('');hubMembersLoaded=true;hmRender()}catch(e){memberBoard.innerHTML=`<div class="loading">Nu am putut încărca membrii: ${hmEsc(e.message)}</div>`}}
+function hmOpen(){document.body.classList.add('members-open');hmLoad();scrollTo({top:0,behavior:'smooth'})}
+function hmClose(){document.body.classList.remove('members-open');scrollTo({top:0,behavior:'smooth'})}
+document.querySelectorAll('[data-open-members]').forEach(x=>x.addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#membri');hmOpen()}));
+document.getElementById('backHome').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'',location.pathname);hmClose()});
+document.getElementById('memberSearch').addEventListener('input',hmRender);
+document.getElementById('memberRankFilter').addEventListener('change',hmRender);
+if(location.hash==='#membri')hmOpen();
+
+
 const agencies=document.querySelectorAll('.agency');
 agencies.forEach(a=>{a.addEventListener('mousemove',e=>{const r=a.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;a.style.setProperty('--mx',x+'px');a.style.setProperty('--my',y+'px');const rx=((y/r.height)-.5)*-3,ry=((x/r.width)-.5)*4;a.querySelector('.heroInner').style.transform=`perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg)`});a.addEventListener('mouseleave',()=>a.querySelector('.heroInner').style.transform='')});
 document.querySelectorAll('.module').forEach(c=>{c.addEventListener('mousemove',e=>{const r=c.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;c.style.transform=`perspective(850px) rotateX(${-y*8}deg) rotateY(${x*9}deg) translateY(-5px)`});c.addEventListener('mouseleave',()=>c.style.transform='')});
