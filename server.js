@@ -158,12 +158,17 @@ const PORT = process.env.PORT || 3000;
 // ======================================================
 app.set("etag", "strong");
 
-app.use(
-    compression({
-        threshold: 1024,
-        level: 6
-    })
-);
+// Cloudflare Workers handles HTTP compression at the edge.
+// Do not run Express/compression inside the Workers node:http bridge: it can
+// produce an encoded API body that the browser then tries to parse as JSON.
+if (process.env.CLOUDFLARE_WORKERS !== "1") {
+    app.use(
+        compression({
+            threshold: 1024,
+            level: 6
+        })
+    );
+}
 
 
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
