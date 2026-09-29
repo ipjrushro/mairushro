@@ -1,5 +1,131 @@
 const express = require("express");
-const axios = require("axios");
+// Cloudflare Workers compatibility: all former Axios calls are routed through
+// native fetch. This avoids Request.cache="default", which Workers rejects.
+function headersToObject(headers) {
+    const out = {};
+    if (headers && typeof headers.forEach === "function") {
+        headers.forEach((value, key) => {
+            out[String(key).toLowerCase()] = value;
+        });
+    }
+    return out;
+}
+
+async function nativeHttpRequest(method, url, data, config = {}) {
+    const requestUrl = new URL(String(url));
+
+    if (config.params && typeof config.params === "object") {
+        for (const [key, value] of Object.entries(config.params)) {
+            if (value !== undefined && value !== null) {
+                requestUrl.searchParams.set(key, String(value));
+            }
+        }
+    }
+
+    const headers = new Headers(config.headers || {});
+    const options = {
+        method: String(method || "GET").toUpperCase(),
+        headers
+    };
+
+    if (options.method !== "GET" && options.method !== "HEAD" && data !== undefined && data !== null) {
+        if (data instanceof URLSearchParams) {
+            if (!headers.has("Content-Type")) {
+                headers.set("Content-Type", "application/x-www-form-urlencoded");
+            }
+            options.body = data.toString();
+        } else if (typeof data === "string" || data instanceof ArrayBuffer || ArrayBuffer.isView(data)) {
+            options.body = data;
+        } else {
+            if (!headers.has("Content-Type")) {
+                headers.set("Content-Type", "application/json");
+            }
+            options.body = JSON.stringify(data);
+        }
+    }
+
+    let timeoutId = null;
+    let controller = null;
+    if (Number(config.timeout) > 0) {
+        controller = new AbortController();
+        options.signal = controller.signal;
+        timeoutId = setTimeout(() => controller.abort(), Number(config.timeout));
+    }
+
+    try {
+        const response = await fetch(requestUrl.toString(), options);
+        const responseHeaders = headersToObject(response.headers);
+        const contentType = String(response.headers.get("content-type") || "").toLowerCase();
+        let responseData = null;
+
+        if (response.status !== 204 && response.status !== 205) {
+            const raw = await response.text();
+            if (raw) {
+                if (contentType.includes("application/json")) {
+                    try {
+                        responseData = JSON.parse(raw);
+                    } catch {
+                        responseData = raw;
+                    }
+                } else {
+                    try {
+                        responseData = JSON.parse(raw);
+                    } catch {
+                        responseData = raw;
+                    }
+                }
+            }
+        }
+
+        const result = {
+            data: responseData,
+            status: response.status,
+            statusText: response.statusText,
+            headers: responseHeaders
+        };
+
+        const accepted = typeof config.validateStatus === "function"
+            ? Boolean(config.validateStatus(response.status))
+            : response.status >= 200 && response.status < 300;
+
+        if (!accepted) {
+            const error = new Error(
+                `HTTP ${response.status}${responseData?.message ? `: ${responseData.message}` : ""}`
+            );
+            error.response = result;
+            throw error;
+        }
+
+        return result;
+    } catch (error) {
+        if (error?.name === "AbortError") {
+            const timeoutError = new Error(`Request timeout after ${Number(config.timeout)}ms`);
+            timeoutError.code = "ETIMEDOUT";
+            throw timeoutError;
+        }
+        throw error;
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+    }
+}
+
+const axios = {
+    get(url, config = {}) {
+        return nativeHttpRequest("GET", url, undefined, config);
+    },
+    delete(url, config = {}) {
+        return nativeHttpRequest("DELETE", url, undefined, config);
+    },
+    post(url, data, config = {}) {
+        return nativeHttpRequest("POST", url, data, config);
+    },
+    put(url, data, config = {}) {
+        return nativeHttpRequest("PUT", url, data, config);
+    },
+    patch(url, data, config = {}) {
+        return nativeHttpRequest("PATCH", url, data, config);
+    }
+};
 const cookieSession = require("cookie-session");
 const path = require("path");
 // Workers do not provide the CommonJS __dirname global. Static assets live in public/.
