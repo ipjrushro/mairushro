@@ -2,6 +2,8 @@ const express = require("express");
 const axios = require("axios");
 const cookieSession = require("cookie-session");
 const path = require("path");
+// Workers do not provide the CommonJS __dirname global. Static assets live in public/.
+const APP_DIR = process.cwd();
 const crypto = require("crypto");
 const multer = require("multer");
 const compression = require("compression");
@@ -1393,7 +1395,7 @@ app.use(
 
 const uploadsDirectory =
     path.join(
-        __dirname,
+        APP_DIR,
         "uploads"
     );
 
@@ -3138,9 +3140,13 @@ app.get(
             "public, max-age=300, must-revalidate"
         );
 
+        if (process.env.CLOUDFLARE_WORKERS === "1") {
+            return res.redirect(302, "/index.html");
+        }
+
         res.sendFile(
             path.join(
-                __dirname,
+                APP_DIR,
                 "index.html"
             ),
             {
@@ -3193,9 +3199,13 @@ app.get(
             "public, max-age=86400, must-revalidate"
         );
 
+        if (process.env.CLOUDFLARE_WORKERS === "1") {
+            return res.status(404).end();
+        }
+
         res.sendFile(
             path.join(
-                __dirname,
+                APP_DIR,
                 "style.css"
             ),
             {
