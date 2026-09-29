@@ -1347,4 +1347,63 @@ function renderNews(filter='ALL'){let arr=notices.filter(n=>n.type==='ANNOUNCEME
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderNews(b.dataset.filter)});
 document.getElementById('diicotNews').onclick=()=>location.href='https://diicotro.rushdiicot6.workers.dev/dashboard';
 (async()=>{try{const r=await fetch('/api/me',{credentials:'include'});if(r.ok){const u=await r.json();if(u&&!u.error)document.getElementById('auth').innerHTML=`<a class="account" href="/dashboard"><i class="online"></i><span>${esc(u.global_name||u.username||'Cont conectat')}</span></a>`}const nr=await fetch('/api/notifications',{credentials:'include'});if(nr.ok){const d=await nr.json();notices=d.notifications||[];renderNews() }else renderNews()}catch{renderNews()}})();
+
+/* ===== HUB MAI browser Back / Forward navigation ===== */
+(function hubHistoryNavigation(){
+  function showHomeFromHistory(){
+    document.body.classList.remove("members-open","penal-open");
+    window.scrollTo({top:0,behavior:"auto"});
+  }
+  function showStateFromLocation(){
+    if (location.hash === "#membri") {
+      document.body.classList.remove("penal-open");
+      hmOpen();
+      return;
+    }
+    if (location.hash === "#cod-penal") {
+      document.body.classList.remove("members-open");
+      hubOpenPenal();
+      return;
+    }
+    showHomeFromHistory();
+  }
+
+  // Ensure the current index page itself has a HUB state.
+  if (!history.state || !history.state.hubMai) {
+    history.replaceState({hubMai:true, view: location.hash || "home"}, "", location.href);
+  }
+
+  // Override only our HUB navigation links to PUSH a state, so browser Back
+  // goes Members/Cod Penal -> HUB home, not to the previous Police dashboard.
+  document.querySelectorAll("[data-open-members]").forEach(el => {
+    el.onclick = function(e){
+      e.preventDefault();
+      history.pushState({hubMai:true,view:"members"},"",location.pathname+"#membri");
+      hmOpen();
+    };
+  });
+  document.querySelectorAll("[data-open-penal]").forEach(el => {
+    el.onclick = function(e){
+      e.preventDefault();
+      history.pushState({hubMai:true,view:"penal"},"",location.pathname+"#cod-penal");
+      hubOpenPenal();
+    };
+  });
+
+  const bh=document.getElementById("backHome");
+  if(bh) bh.onclick=function(e){
+    e.preventDefault();
+    history.pushState({hubMai:true,view:"home"},"",location.pathname);
+    showHomeFromHistory();
+  };
+  const bp=document.getElementById("penalBack");
+  if(bp) bp.onclick=function(e){
+    e.preventDefault();
+    history.pushState({hubMai:true,view:"home"},"",location.pathname);
+    showHomeFromHistory();
+  };
+
+  addEventListener("popstate", showStateFromLocation);
+})();
+
 </script></body></html>
