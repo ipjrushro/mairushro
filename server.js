@@ -32,12 +32,17 @@ const PORT = process.env.PORT || 3000;
 // ======================================================
 app.set("etag", "strong");
 
-app.use(
-    compression({
-        threshold: 1024,
-        level: 6
-    })
-);
+// Pe Cloudflare Workers NU folosim middleware-ul Node `compression`.
+// Workers/Cloudflare gestionează compresia la edge; middleware-ul Node poate
+// trimite corp gzip/br corupt către browser, iar JSON.parse vede bytes binari.
+if (process.env.CLOUDFLARE_WORKERS !== "1") {
+    app.use(
+        compression({
+            threshold: 1024,
+            level: 6
+        })
+    );
+}
 
 
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
