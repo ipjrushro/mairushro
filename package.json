@@ -1,0 +1,29 @@
+{
+  "name": "politie-command-center",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Politie Command Center - Cloudflare Workers + Supabase + Backblaze B2",
+  "main": "server.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "node --check server.js"
+  },
+  "engines": {
+    "node": ">=20 <25"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
+    "@aws-sdk/s3-request-presigner": "^3.0.0",
+    "@supabase/supabase-js": "^2.0.0",
+    "axios": "^1.0.0",
+    "compression": "^1.0.0",
+    "cookie-session": "^2.0.0",
+    "dotenv": "^16.0.0",
+    "express": "^4.21.0",
+    "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

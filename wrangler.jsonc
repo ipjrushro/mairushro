@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "mairush-politie",
+  "main": "./src/worker.mjs",
+  "compatibility_date": "2026-09-29",
+  "vars": {
+    "CLOUDFLARE_WORKERS": "1",
+    "NODE_ENV": "production"
+  },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/dashboard",
+      "/auth/*",
+      "/api/*",
+      "/logout",
+      "/health"
+    ]
+  },
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  }
+}
