@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#020713">
+<title>Poliția Română — Rush România</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#02060d;--panel:#07111e;--panel2:#09182a;--text:#f5f8fc;--muted:#8498af;--blue:#148cff;--cyan:#5ecbff;--gold:#f4c34f;--green:#4be0a3;--line:rgba(132,177,222,.16);--max:1500px}
+*{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;background:#02060d;color:var(--text);font-family:Inter,sans-serif;overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-3;background:radial-gradient(circle at 76% 8%,rgba(16,106,218,.18),transparent 28%),radial-gradient(circle at 13% 55%,rgba(0,91,188,.10),transparent 25%),#02060d}
+a{color:inherit;text-decoration:none} button{font:inherit} .container{width:min(var(--max),calc(100% - 70px));margin:auto}
+.noise{position:fixed;inset:0;z-index:1000;pointer-events:none;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E")}
+.cursor-glow{position:fixed;width:420px;height:420px;border-radius:50%;background:rgba(25,132,255,.08);filter:blur(80px);pointer-events:none;z-index:-1;transform:translate(-50%,-50%)}
+.site-header{position:fixed;z-index:100;top:18px;left:50%;transform:translateX(-50%);width:min(1460px,calc(100% - 36px));border:1px solid rgba(255,255,255,.10);border-radius:20px;background:rgba(3,9,18,.73);backdrop-filter:blur(25px);box-shadow:0 18px 60px #0008}
+.header-inner{height:76px;padding:0 18px;display:flex;align-items:center;gap:28px} .brand{display:flex;align-items:center;gap:13px;margin-right:auto}
+.brand-mark{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;overflow:hidden;background:#07172b;border:1px solid rgba(60,151,235,.35);box-shadow:inset 0 0 25px #0a65b933}
+.brand-mark img{width:100%;height:100%;object-fit:contain;padding:3px} .brand-name{font:800 13px Space Grotesk;letter-spacing:.08em} .brand-sub{display:block;margin-top:4px;color:#5db8ff;font-size:8px;font-weight:800;letter-spacing:.17em}
+.nav{display:flex;gap:30px} .nav a{position:relative;color:#9eafc3;font-size:10px;font-weight:800;letter-spacing:.04em} .nav a:after{content:"";position:absolute;left:0;right:100%;bottom:-10px;height:2px;background:#3da5ff;transition:.3s} .nav a:hover{color:white} .nav a:hover:after{right:0}
+.header-auth,.btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:12px;font-size:10px;font-weight:900;letter-spacing:.03em;transition:.28s;cursor:pointer} .header-auth{height:44px;padding:0 18px;background:#f4f7fb;color:#06101c} .header-auth:hover,.btn:hover{transform:translateY(-3px)}
+.mobile-toggle{display:none;width:44px;height:44px;border:1px solid var(--line);background:#081627;color:white;border-radius:11px} .member{display:flex;align-items:center;gap:10px} .member img{width:38px;height:38px;border-radius:50%;border:1px solid #2b85c8} .member-info strong,.member-info small{display:block;font-size:9px} .member-info small{color:#5fc0ff;margin-top:3px} .signout{font-size:9px;color:#8093aa}
+.hero{min-height:100vh;position:relative;display:flex;align-items:center;padding:125px 0 70px;isolation:isolate} .hero-bg{position:absolute;inset:0;z-index:-4;background-image:linear-gradient(90deg,#02060d 0%,rgba(2,6,13,.92) 34%,rgba(2,6,13,.42) 69%,#02060d 100%),linear-gradient(0deg,#02060d 0%,transparent 36%),url('https://www.interpol.int/var/interpol/storage/images/_aliases/large_1024x676/3/6/5/3/143563-1-eng-GB/5993405929be-1-Romania-Police.jpg');background-size:cover;background-position:center;transform:scale(1.02)}
+.hero-grid{display:grid;grid-template-columns:1.03fr .97fr;gap:60px;align-items:center} .status-pill{display:inline-flex;align-items:center;gap:9px;padding:8px 11px;border:1px solid rgba(62,187,150,.26);border-radius:999px;background:rgba(4,27,27,.55);color:#80e9c4;font-size:8px;font-weight:900;letter-spacing:.15em} .dot{width:7px;height:7px;border-radius:50%;background:#49e5a8;box-shadow:0 0 16px #49e5a8;animation:pulse 1.8s infinite}
+@keyframes pulse{50%{box-shadow:0 0 26px #49e5a8;opacity:.65}} .hero-kicker{display:block;margin-top:28px;color:#f0c454;font-size:9px;font-weight:900;letter-spacing:.2em}
+.hero h1{font:700 clamp(56px,6.6vw,105px)/.89 Space Grotesk;margin:14px 0 26px;letter-spacing:-.065em;max-width:900px;text-shadow:0 20px 50px #000} .hero h1 span{display:block;color:#5bb8ff} .hero-lead{max-width:650px;color:#a4b1c1;font-size:14px;line-height:1.85}
+.hero-actions{display:flex;gap:11px;margin-top:31px} .btn{height:54px;padding:0 22px} .btn.primary{background:linear-gradient(135deg,#f8fbff,#cbe8ff);color:#04101c;box-shadow:0 13px 40px #117ee522} .btn.secondary{background:rgba(7,19,34,.76);backdrop-filter:blur(12px)} .hero-note{margin-top:20px;color:#71869c;font-size:9px}
+.command-card{justify-self:end;width:min(510px,100%);border:1px solid rgba(140,191,238,.22);border-radius:24px;background:linear-gradient(150deg,rgba(7,19,34,.88),rgba(3,10,19,.78));backdrop-filter:blur(22px);box-shadow:0 35px 90px #000b;overflow:hidden;animation:float 6s ease-in-out infinite} @keyframes float{50%{transform:translateY(-8px)}}
+.command-photo{height:270px;position:relative;background:url('https://www.radioromania.ro/img.php?c=1&h=540&u=https%3A%2F%2Fwww.radioromania.ro%2Fuploads%2Fmodules%2Fnews%2F0%2F2025%2F1%2F15%2F47357%2F17368948292c2d6cf4.jpg&w=960') center/cover} .command-photo:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#07111e,transparent 60%)} .scan{position:absolute;z-index:2;left:0;right:0;height:1px;background:#62c5ff;box-shadow:0 0 18px #4cb7ff;animation:scan 4s linear infinite;opacity:.7} @keyframes scan{0%{top:0}50%{top:100%}100%{top:0}}
+.command-body{padding:23px} .command-top{display:flex;align-items:center;justify-content:space-between} .command-top strong{font:700 17px Space Grotesk} .secure{font-size:8px;color:#5de0af;border:1px solid #1c5c4b;border-radius:99px;padding:7px 9px;background:#06251e} .command-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px} .command-grid div{padding:13px;border:1px solid var(--line);border-radius:11px;background:#06101c} .command-grid small{display:block;color:#647b94;font-size:7px;letter-spacing:.08em} .command-grid b{display:block;margin-top:7px;font-size:10px}
+.scroll-cue{position:absolute;bottom:27px;left:50%;transform:translateX(-50%);color:#617991;font-size:8px;letter-spacing:.15em} .scroll-cue:after{content:"";display:block;width:1px;height:32px;background:linear-gradient(#51b7ff,transparent);margin:9px auto 0;animation:down 1.8s infinite} @keyframes down{50%{transform:translateY(7px)}}
+.stats{position:relative;z-index:5;margin-top:-26px} .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:19px;background:rgba(5,14,25,.94);backdrop-filter:blur(20px);overflow:hidden;box-shadow:0 25px 60px #0007} .stat{padding:24px 25px;border-right:1px solid var(--line)} .stat:last-child{border:0} .stat-icon{width:35px;height:35px;display:grid;place-items:center;border-radius:9px;background:#0b2541;border:1px solid #194c7d;color:#5dbbff;margin-bottom:17px;font-size:16px} .stat b{font-size:11px} .stat p{font-size:9px;color:#71869c;margin:7px 0 0;line-height:1.5}
+.section{padding:120px 0} .section-head{display:flex;align-items:end;justify-content:space-between;margin-bottom:38px} .kicker{color:#58b7ff;font-size:8px;font-weight:900;letter-spacing:.2em} .section h2,.feature-copy h2{font:600 clamp(37px,4vw,62px)/1 Space Grotesk;letter-spacing:-.055em;margin:12px 0 0} .section-head p{max-width:420px;color:#7f93aa;font-size:11px;line-height:1.7}
+.modules{display:grid;grid-template-columns:repeat(12,1fr);gap:13px} .module{position:relative;min-height:290px;padding:25px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(145deg,#091728,#050d18);overflow:hidden;transition:.35s} .module:nth-child(1){grid-column:span 6} .module:nth-child(2),.module:nth-child(3){grid-column:span 3} .module:nth-child(n+4){grid-column:span 3;min-height:210px} .module:hover{transform:translateY(-7px);border-color:#277ec3;box-shadow:0 30px 70px #0009} .module:after{content:"";position:absolute;width:180px;height:180px;border-radius:50%;right:-80px;top:-80px;background:#147cff;filter:blur(80px);opacity:0;transition:.4s} .module:hover:after{opacity:.22} .module-icon{width:46px;height:46px;display:grid;place-items:center;border:1px solid #1f5e96;border-radius:12px;background:#0a223d;color:#66c0ff;font-size:20px} .module-number{position:absolute;right:22px;top:22px;color:#42617e;font:700 9px Space Grotesk;letter-spacing:.13em} .module h3{margin:40px 0 8px;font:600 20px Space Grotesk} .module p{color:#758aa2;font-size:10px;line-height:1.65;max-width:390px} .module-go{position:absolute;right:22px;bottom:20px;color:#5abaff;font-size:17px}
+.feature{padding:0 0 120px} .feature-panel{display:grid;grid-template-columns:1.12fr .88fr;min-height:550px;border:1px solid var(--line);border-radius:25px;overflow:hidden;background:#06101d} .feature-photo{position:relative;background:url('https://www.interpol.int/var/interpol/storage/images/_aliases/large_1024x676/3/6/5/3/143563-1-eng-GB/5993405929be-1-Romania-Police.jpg') center/cover} .feature-photo:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 50%,#06101d),linear-gradient(0deg,#02060d99,transparent 55%)} .feature-copy{padding:60px;display:flex;justify-content:center;flex-direction:column} .feature-copy p{color:#8196ad;font-size:12px;line-height:1.8} .feature-list{margin-top:20px} .feature-row{display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-top:1px solid var(--line);font-size:10px} .feature-row span:first-child{color:#a9b7c7} .feature-row span:last-child{color:#5bc1ff;font-weight:800}
+.cta{padding-bottom:90px} .cta-panel{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;padding:48px;border:1px solid rgba(55,139,213,.42);border-radius:23px;background:linear-gradient(120deg,#0b2543,#07111f)} .cta-panel:before{content:"";position:absolute;right:-80px;width:350px;height:350px;border-radius:50%;background:#1287ff;filter:blur(130px);opacity:.27} .cta-panel>*{position:relative} .cta h2{font:600 31px Space Grotesk;margin:8px 0} .cta p{font-size:11px;color:#8194aa} footer{border-top:1px solid var(--line);padding:32px 0;color:#61758c;font-size:9px} .footer-row{display:flex;justify-content:space-between}
+.reveal{opacity:0;transform:translateY(24px);transition:.8s cubic-bezier(.2,.8,.2,1)} .reveal.visible{opacity:1;transform:none}
+@media(max-width:950px){.container{width:calc(100% - 32px)}.nav{display:none;position:absolute;top:82px;left:0;right:0;padding:20px;flex-direction:column;background:#06111f;border:1px solid var(--line);border-radius:15px}.nav.open{display:flex}.mobile-toggle{display:block}.hero-grid{grid-template-columns:1fr}.command-card{justify-self:start}.stats-grid{grid-template-columns:1fr 1fr}.stat:nth-child(2){border-right:0}.modules{grid-template-columns:1fr}.module,.module:nth-child(n){grid-column:auto}.feature-panel{grid-template-columns:1fr}.feature-photo{min-height:400px}.section-head{display:block}.section-head p{margin-top:18px}.member-info,.signout{display:none}}
+@media(max-width:560px){.container{width:calc(100% - 22px)}.site-header{top:9px;width:calc(100% - 16px)}.header-inner{height:66px;padding:0 10px}.brand-mark{width:40px;height:40px}.brand-sub{display:none}.hero{padding-top:110px}.hero h1{font-size:50px}.hero-actions{flex-direction:column}.btn{width:100%}.command-photo{height:210px}.command-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr}.stat{border-right:0;border-bottom:1px solid var(--line)}.feature-copy{padding:36px 23px}.feature-photo{min-height:300px}.cta-panel{display:block;padding:31px 23px}.cta .btn{margin-top:18px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="noise"></div><div class="cursor-glow" id="cursorGlow"></div>
+<header class="site-header"><div class="header-inner">
+<a class="brand" href="/"><span class="brand-mark"><img src="/uploads/politia-romana-logo.png" alt="Poliția Română" onerror="this.style.display='none'"></span><span><strong class="brand-name">POLIȚIA ROMÂNĂ</strong><small class="brand-sub">RUSH ROMÂNIA · COMMAND SYSTEM</small></span></a>
+<nav id="navigation" class="nav"><a href="#acasa">Acasă</a><a href="#module">Platformă</a><a href="#sistem">Sistem</a><a href="/dashboard">Centru de comandă</a></nav>
+<div class="header-actions"><div id="auth-area"><a class="header-auth" href="/auth/discord">Conectare Discord</a></div><button id="menu-toggle" class="mobile-toggle">☰</button></div>
+</div></header>
+
+<main>
+<section class="hero" id="acasa"><div class="hero-bg"></div><div class="container hero-grid">
+<div>
+<div class="status-pill"><i class="dot"></i> SISTEM OPERAȚIONAL · ONLINE</div>
+<span class="hero-kicker">POLIȚIA ROMÂNĂ · RUSH ROMÂNIA</span>
+<h1>Centru digital.<span>Control total.</span></h1>
+<p class="hero-lead">Platforma operațională a departamentului. Rapoarte, personal, documente, cereri și activitate — reunite într-o interfață rapidă, securizată și construită pentru comunitate.</p>
+<div class="hero-actions"><a id="main-login-btn" class="btn primary" href="/auth/discord">Deschide centrul →</a><a class="btn secondary" href="#module">Explorează platforma ↓</a></div>
+<p class="hero-note">◆ Autentificare Discord &nbsp; • &nbsp; Acces pe grade &nbsp; • &nbsp; Sistem intern</p>
+</div>
+<div class="command-card">
+<div class="command-photo"><div class="scan"></div></div>
+<div class="command-body"><div class="command-top"><strong>Centrul de comandă</strong><span class="secure">● SECURIZAT</span></div>
+<div class="command-grid"><div><small>STATUS</small><b>OPERAȚIONAL</b></div><div><small>ACCES</small><b>DISCORD</b></div><div><small>PLATFORMĂ</small><b>ONLINE</b></div></div></div>
+</div></div><div class="scroll-cue">SCROLL TO EXPLORE</div></section>
+
+<section class="stats reveal"><div class="container stats-grid">
+<div class="stat"><div class="stat-icon">⌁</div><b>Acces securizat</b><p>Autentificare prin identitatea Discord a comunității.</p></div>
+<div class="stat"><div class="stat-icon">▦</div><b>Centru unificat</b><p>Rapoarte și activitate într-o singură platformă.</p></div>
+<div class="stat"><div class="stat-icon">◉</div><b>Roluri inteligente</b><p>Interfața se adaptează automat gradului utilizatorului.</p></div>
+<div class="stat"><div class="stat-icon">↗</div><b>Acces rapid</b><p>Modulele importante sunt disponibile fără pași inutili.</p></div>
+</div></section>
+
+<section class="section container reveal" id="module">
+<div class="section-head"><div><span class="kicker">01 — COMMAND MODULES</span><h2>Tot departamentul.<br>Un singur sistem.</h2></div><p>Acces rapid către instrumentele folosite zilnic, într-o interfață construită ca un centru operațional modern.</p></div>
+<div class="modules">
+<a class="module" href="/dashboard?section=new-report"><span class="module-number">01 / RAPORTARE</span><div class="module-icon">▤</div><h3>Raport nou</h3><p>Înregistrează activitatea, completează informațiile și atașează dovezile necesare.</p><span class="module-go">↗</span></a>
+<a class="module" href="/dashboard?section=my-reports"><span class="module-number">02 / ARHIVĂ</span><div class="module-icon">▣</div><h3>Rapoartele mele</h3><p>Istoric complet și acces rapid la activitatea ta.</p><span class="module-go">↗</span></a>
+<a class="module" href="/dashboard?section=personnel"><span class="module-number">03 / PERSONAL</span><div class="module-icon">♙</div><h3>Personal</h3><p>Membri, grade și profiluri.</p><span class="module-go">↗</span></a>
+<a class="module" href="/dashboard?section=activities"><span class="module-number">04</span><div class="module-icon">⇄</div><h3>Activități</h3><p>Cereri, callsign și operațiuni.</p><span class="module-go">↗</span></a>
+<a class="module" href="/dashboard?section=test-management"><span class="module-number">05</span><div class="module-icon">✓</div><h3>Testări</h3><p>Candidați și evaluări interne.</p><span class="module-go">↗</span></a>
+<a class="module" href="/dashboard?section=docs"><span class="module-number">06</span><div class="module-icon">□</div><h3>Documente</h3><p>Evidență și informații operative.</p><span class="module-go">↗</span></a>
+<a class="module" href="/dashboard?section=admin"><span class="module-number">07</span><div class="module-icon">⚙</div><h3>Administrare</h3><p>Instrumente dedicate conducerii.</p><span class="module-go">↗</span></a>
+</div></section>
+
+<section class="feature container reveal" id="sistem"><div class="feature-panel"><div class="feature-photo"></div><div class="feature-copy">
+<span class="kicker">02 — OPERATIONAL PLATFORM</span><h2>Construit pentru activitate.</h2>
+<p>Interfața combină accesul rapid cu o structură clară. După autentificare, fiecare membru ajunge direct la funcțiile disponibile pentru rolul său.</p>
+<div class="feature-list"><div class="feature-row"><span>Autentificare</span><span>DISCORD OAUTH</span></div><div class="feature-row"><span>Permisiuni</span><span>ROLE BASED</span></div><div class="feature-row"><span>Rapoarte & documente</span><span>CENTRALIZAT</span></div><div class="feature-row"><span>Interfață</span><span>RESPONSIVE</span></div></div>
+</div></div></section>
+
+<section class="cta container reveal"><div class="cta-panel"><div><span class="kicker">CENTRU DE COMANDĂ</span><h2>Intră în sistem.</h2><p>Autentifică-te și continuă în panoul operațional al departamentului.</p></div><a id="bottom-login-btn" class="btn primary" href="/auth/discord">Conectare Discord →</a></div></section>
+</main>
+<footer><div class="container footer-row"><span>© 2026 POLIȚIA ROMÂNĂ · RUSH ROMÂNIA</span><span>SISTEM INTERN · ACCES RESTRICȚIONAT</span></div></footer>
+
+<script>
+
+    const nav=document.getElementById('navigation');
+    const menu=document.getElementById('menu-toggle');
+    menu.addEventListener('click',()=>{const opened=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(opened));menu.setAttribute('aria-label',opened?'Închide meniul':'Deschide meniul');});
+    nav.addEventListener('click',event=>{if(event.target.closest('a')){nav.classList.remove('open');menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-label','Deschide meniul');}});
+    function showLoggedOut(){
+      const area=document.getElementById('auth-area');area.replaceChildren();const link=document.createElement('a');link.className='header-auth';link.href='/auth/discord';link.textContent='Conectare Discord';area.append(link);
+      const main=document.getElementById('main-login-btn');main.href='/auth/discord';main.firstChild.textContent='Intră în centru ';
+      const bottom=document.getElementById('bottom-login-btn');bottom.href='/auth/discord';bottom.firstChild.textContent='Conectare Discord ';
+    }
+    function showLoggedIn(user){
+      const area=document.getElementById('auth-area');area.replaceChildren();
+      const box=document.createElement('div');box.className='member';
+      const avatar=document.createElement('img');const uid=String(user.id||'');const hash=String(user.avatar||'');avatar.src=/^\d+$/.test(uid)&&/^[a-z0-9_]+$/i.test(hash)?`https://cdn.discordapp.com/avatars/${uid}/${hash}.png?size=128`:'https://cdn.discordapp.com/embed/avatars/0.png';avatar.alt='Avatar Discord';
+      const info=document.createElement('div');info.className='member-info';const name=document.createElement('strong');name.textContent=user.displayName||user.globalName||user.username||'Utilizator';const rank=document.createElement('small');rank.textContent=user.rank||'MEMBRU POLIȚIE';info.append(name,rank);
+      const dashboard=document.createElement('a');dashboard.href='/dashboard';dashboard.className='header-auth';dashboard.textContent='Deschide centrul';
+      const logout=document.createElement('a');logout.href='/logout';logout.className='signout';logout.textContent='Ieșire';box.append(avatar,info,dashboard,logout);area.append(box);
+      for(const id of ['main-login-btn','bottom-login-btn']){const a=document.getElementById(id);a.href='/dashboard';a.firstChild.textContent='Deschide centrul ';}
+    }
+    async function checkLogin(){
+      try{const response=await fetch('/api/me',{credentials:'include',cache:'no-store'});if(!response.ok){showLoggedOut();return;}const data=await response.json();data.loggedIn&&data.user?showLoggedIn(data.user):showLoggedOut();}
+      catch(error){showLoggedOut();}
+    }
+    window.addEventListener('pageshow',checkLogin);
+  
+const glow=document.getElementById('cursorGlow');
+if(glow && matchMedia('(pointer:fine)').matches) document.addEventListener('mousemove',e=>{glow.style.left=e.clientX+'px';glow.style.top=e.clientY+'px'});
+const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+</script>
+</body></html>
