@@ -486,167 +486,86 @@ async function getDiscordMemberCached(
 }
 
 
-async function getGuildMembersCached(
-    {
-        force = false
-    } = {}
-) {
-    const now =
-        Date.now();
+async function getGuildMembersCached({ force = false } = {}) {
+    const now = Date.now();
 
-    if (
-        !force &&
-        discordGuildMembersCache.members.length &&
-        discordGuildMembersCache.expiresAt >
-            now
-    ) {
+    if (!force && discordGuildMembersCache.members.length &&
+        discordGuildMembersCache.expiresAt > now) {
         return discordGuildMembersCache.members;
     }
 
-    if (
-        discordGuildMembersInflight
-    ) {
-        return discordGuildMembersInflight;
-    }
+    if (discordGuildMembersInflight) return discordGuildMembersInflight;
 
-    discordGuildMembersInflight =
-        (async () => {
-            const oldMembers =
-                discordGuildMembersCache.members;
+    discordGuildMembersInflight = (async () => {
+        const oldMembers = discordGuildMembersCache.members;
+        try {
+            const allMembers = [];
+            let after = "0";
+            let pages = 0;
 
-            try {
-                const allMembers = [];
+            while (pages < 50) {
+                pages += 1;
+                const url = new URL(`https://discord.com/api/v10/guilds/${GUILD_ID}/members`);
+                url.searchParams.set("limit", "1000");
+                url.searchParams.set("after", after);
 
-                let after =
-                    "0";
-
-                let pages =
-                    0;
-
-                while (
-                    pages <
-                    50
-                ) {
-                    pages += 1;
-
-                    const response =
-                        await axios.get(
-                            `https://discord.com/api/v10/guilds/${GUILD_ID}/members`,
-                            {
-                                params: {
-                                    limit:
-                                        1000,
-
-                                    after
-                                },
-
-                                headers: {
-                                    Authorization:
-                                        `Bot ${BOT_TOKEN}`
-                                },
-
-                                timeout:
-                                    20000
-                            }
-                        );
-
-                    const page =
-                        Array.isArray(
-                            response.data
-                        )
-                            ? response.data
-                            : [];
-
-                    if (!page.length) {
-                        break;
+                const response = await fetch(url.toString(), {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bot ${BOT_TOKEN}`,
+                        Accept: "application/json"
                     }
+                });
 
-                    allMembers.push(
-                        ...page
-                    );
-
-                    for (
-                        const member of
-                        page
-                    ) {
-                        const id =
-                            String(
-                                member?.user?.id ||
-                                ""
-                            );
-
-                        if (id) {
-                            discordMemberCache.set(
-                                id,
-                                {
-                                    member,
-                                    expiresAt:
-                                        Date.now() +
-                                        DISCORD_MEMBER_CACHE_TTL_MS
-                                }
-                            );
-                        }
-                    }
-
-                    if (
-                        page.length <
-                        1000
-                    ) {
-                        break;
-                    }
-
-                    const lastId =
-                        page[
-                            page.length -
-                            1
-                        ]?.user?.id;
-
-                    if (!lastId) {
-                        break;
-                    }
-
-                    after =
-                        String(
-                            lastId
-                        );
+                if (!response.ok) {
+                    const details = await response.text();
+                    const error = new Error(`Discord members HTTP ${response.status}: ${details.slice(0,300)}`);
+                    error.response = {
+                        status: response.status,
+                        data: (() => { try { return JSON.parse(details); } catch { return {message:details}; } })(),
+                        headers: {"retry-after": response.headers.get("retry-after")}
+                    };
+                    throw error;
                 }
 
-                discordGuildMembersCache = {
-                    members:
-                        allMembers,
+                const data = await response.json();
+                const page = Array.isArray(data) ? data : [];
+                if (!page.length) break;
 
-                    expiresAt:
-                        Date.now() +
-                        DISCORD_GUILD_CACHE_TTL_MS
-                };
+                allMembers.push(...page);
 
-                console.log(
-                    `[Discord Cache] Guild members refresh: ${allMembers.length} membri.`
-                );
-
-                return allMembers;
-            }
-            catch (error) {
-                if (
-                    isDiscordRateLimited(
-                        error
-                    ) &&
-                    oldMembers.length
-                ) {
-                    console.warn(
-                        "[Discord Cache] Discord rate limited; folosesc lista veche din cache."
-                    );
-
-                    return oldMembers;
+                for (const member of page) {
+                    const id = String(member?.user?.id || "");
+                    if (id) {
+                        discordMemberCache.set(id, {
+                            member,
+                            expiresAt: Date.now() + DISCORD_MEMBER_CACHE_TTL_MS
+                        });
+                    }
                 }
 
-                throw error;
+                if (page.length < 1000) break;
+                const lastId = page[page.length - 1]?.user?.id;
+                if (!lastId) break;
+                after = String(lastId);
             }
-            finally {
-                discordGuildMembersInflight =
-                    null;
+
+            discordGuildMembersCache = {
+                members: allMembers,
+                expiresAt: Date.now() + DISCORD_GUILD_CACHE_TTL_MS
+            };
+            console.log(`[Discord Cache] Guild members refresh: ${allMembers.length} membri.`);
+            return allMembers;
+        } catch (error) {
+            if (isDiscordRateLimited(error) && oldMembers.length) {
+                console.warn("[Discord Cache] Discord rate limited; folosesc lista veche din cache.");
+                return oldMembers;
             }
-        })();
+            throw error;
+        } finally {
+            discordGuildMembersInflight = null;
+        }
+    })();
 
     return discordGuildMembersInflight;
 }
