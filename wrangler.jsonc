@@ -4,14 +4,14 @@
   "main": "./src/worker.mjs",
   "compatibility_date": "2026-09-29",
   "compatibility_flags": [
-    "nodejs_compat"
+    "nodejs_compat",
+    "enable_nodejs_http_modules",
+    "enable_nodejs_http_server_modules"
   ],
-
   "vars": {
     "CLOUDFLARE_WORKERS": "1",
     "NODE_ENV": "production"
   },
-
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -23,7 +23,6 @@
       "/health"
     ]
   },
-
   "triggers": {
     "crons": ["*/5 * * * *"]
   }
