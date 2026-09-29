@@ -1,93 +1,62 @@
 <!doctype html>
 <html lang="ro">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#060914">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HUB MAI — Rush România</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--blue:#2583ff;--gold:#e5a91a;--bg:#050811;--muted:#9ba7b8}
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,Arial,sans-serif;background:var(--bg);color:#fff}body{min-height:100vh;overflow-x:hidden}a{text-decoration:none;color:inherit}
-body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:30;background:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:44px 44px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.55),transparent 78%)}
-.top{height:78px;position:relative;z-index:20;background:rgba(6,10,18,.88);border-bottom:1px solid rgba(255,255,255,.08);backdrop-filter:blur(20px)}
-.topin{height:100%;width:min(1540px,calc(100% - 48px));margin:auto;display:flex;align-items:center;justify-content:space-between}
-.brand{display:flex;align-items:center;gap:14px}.brandmark{width:42px;height:42px;border:1px solid rgba(255,255,255,.13);background:linear-gradient(145deg,rgba(37,131,255,.15),rgba(229,169,26,.08));border-radius:12px;display:grid;place-items:center;box-shadow:inset 0 0 25px rgba(255,255,255,.03)}.brandmark img{width:29px;height:29px;object-fit:contain}.brandtxt b{display:block;font-family:Oswald;font-size:19px;letter-spacing:.12em}.brandtxt small{display:block;color:#68778d;font-size:9px;letter-spacing:.2em;margin-top:3px}
-.auth{min-height:44px;padding:0 17px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.055);display:flex;align-items:center;gap:11px;font-size:12px;font-weight:800;transition:.22s}.auth:hover{background:rgba(255,255,255,.1);transform:translateY(-1px)}.statusdot{width:8px;height:8px;border-radius:50%;background:#7289da;box-shadow:0 0 14px #7289da}
-.hub{min-height:calc(100vh - 78px);display:grid;grid-template-columns:1fr 1fr;position:relative;isolation:isolate}.side{position:relative;min-height:760px;display:flex;align-items:center;overflow:hidden}.side:before{content:"";position:absolute;inset:-15px;background-size:cover;background-position:center;filter:saturate(.9) contrast(1.05);transform:scale(1.04);transition:transform .7s ease,filter .7s ease}.side:hover:before{transform:scale(1.075);filter:saturate(1.08) contrast(1.08)}.side:after{content:"";position:absolute;inset:0;z-index:0}
-.police{justify-content:flex-end}.diicot{justify-content:flex-start}.police:before{background-image:url('/uploads/politia-cover.jpg')}.diicot:before{background-image:url('/uploads/diicot-index-bg.png')}
-.police:after{background:radial-gradient(circle at 70% 40%,rgba(22,112,255,.19),transparent 34%),linear-gradient(90deg,rgba(2,8,19,.98) 0%,rgba(4,14,31,.89) 55%,rgba(5,15,29,.72) 100%),linear-gradient(0deg,#040812 0%,transparent 55%)}
-.diicot:after{background:radial-gradient(circle at 30% 40%,rgba(222,163,20,.16),transparent 34%),linear-gradient(270deg,rgba(8,7,3,.98) 0%,rgba(25,18,5,.89) 55%,rgba(27,20,6,.73) 100%),linear-gradient(0deg,#070704 0%,transparent 55%)}
-.content{position:relative;z-index:2;width:min(620px,78%);padding:70px 62px}.police .content{text-align:right}.diicot .content{text-align:left}
-.kicker{display:inline-flex;align-items:center;gap:9px;font-size:10px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;margin-bottom:20px;color:#8ea2bd}.kicker i{width:28px;height:1px;background:currentColor}.police .kicker{color:#6daaff}.diicot .kicker{color:#caa448}
-.logo{height:128px;max-width:240px;object-fit:contain;filter:drop-shadow(0 18px 35px rgba(0,0,0,.65));margin-bottom:24px}.diicot .logo{height:108px;max-width:300px}
-.title{font-family:Oswald,sans-serif;font-size:64px;line-height:.98;letter-spacing:.015em;margin:0;text-transform:uppercase;text-shadow:0 12px 40px #000}.police .title em{font-style:normal;color:var(--blue)}.diicot .title{color:#f1b51f}
-.rule{height:2px;width:78px;margin:22px 0 20px;background:linear-gradient(90deg,currentColor,transparent)}.police .rule{margin-left:auto;color:var(--blue);transform:scaleX(-1)}.diicot .rule{color:var(--gold)}
-.desc{color:#a3adbc;font-size:14px;line-height:1.75;max-width:490px;margin:0 0 30px}.police .desc{margin-left:auto}.diicot .desc{color:#b6ad93}
-.actions{display:flex;gap:12px;align-items:center}.police .actions{justify-content:flex-end}
-.enter{height:55px;padding:0 25px;display:inline-flex;align-items:center;gap:14px;border-radius:8px;font-family:Oswald;font-size:15px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;transition:.22s;position:relative;overflow:hidden}.enter:after{content:"";position:absolute;inset:0;transform:translateX(-120%);background:linear-gradient(100deg,transparent,rgba(255,255,255,.2),transparent);transition:.45s}.enter:hover:after{transform:translateX(120%)}.enter:hover{transform:translateY(-3px)}.police .enter{background:linear-gradient(135deg,#1470ff,#2d91ff);box-shadow:0 14px 35px rgba(23,113,255,.24)}.diicot .enter{background:linear-gradient(135deg,#bd8000,#efb829);color:#100b02;box-shadow:0 14px 35px rgba(220,159,16,.18)}.arrow{font-size:21px}
-.info{margin-top:18px;display:inline-flex;align-items:center;gap:8px;font-size:10px;color:#69788d;letter-spacing:.06em}.info b{color:#95a4b8}.diicot .info{color:#766c4e}.diicot .info b{color:#a89a70}
-.centerline{position:absolute;z-index:5;left:50%;top:0;bottom:0;width:1px;background:linear-gradient(transparent 3%,rgba(151,104,255,.5) 25%,rgba(151,104,255,.8) 50%,rgba(151,104,255,.5) 75%,transparent 97%);box-shadow:0 0 22px rgba(130,76,255,.45)}
-.core{position:absolute;z-index:8;left:50%;top:50%;transform:translate(-50%,-50%);width:164px;height:164px;border-radius:36px;background:linear-gradient(145deg,rgba(18,18,29,.97),rgba(5,7,12,.98));border:1px solid rgba(173,127,255,.48);box-shadow:0 0 0 8px rgba(111,65,190,.045),0 0 60px rgba(117,66,215,.38),inset 0 0 38px rgba(144,92,238,.08);display:flex;align-items:center;justify-content:center;text-align:center;transform-origin:center}.core:before{content:"";position:absolute;inset:12px;border:1px solid rgba(255,255,255,.06);border-radius:27px}.corein{position:relative}.shield{width:39px;height:45px;margin:0 auto 9px;clip-path:polygon(50% 0,90% 14%,85% 70%,50% 100%,15% 70%,10% 14%);background:linear-gradient(160deg,#a26cff,#6335bd);display:grid;place-items:center;font-family:Oswald;font-weight:700;font-size:14px;box-shadow:0 0 22px #7f48df}.core strong{display:block;font-family:Oswald;font-size:22px;letter-spacing:.18em}.core span{display:block;font-size:8px;color:#a6b0bf;letter-spacing:.22em;margin-top:4px;text-transform:uppercase}
-.bottom{position:absolute;z-index:7;bottom:20px;left:50%;transform:translateX(-50%);padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,.07);background:rgba(5,8,13,.55);backdrop-filter:blur(12px);font-size:8px;letter-spacing:.22em;color:#66748a;white-space:nowrap}
-@media(max-width:960px){.hub{grid-template-columns:1fr}.side{min-height:650px;justify-content:center}.content,.police .content,.diicot .content{width:min(620px,90%);padding:70px 30px;text-align:center}.police .desc,.diicot .desc{margin-left:auto;margin-right:auto}.police .rule,.diicot .rule{margin-left:auto;margin-right:auto}.police .actions,.diicot .actions{justify-content:center}.centerline,.core,.bottom{display:none}.title{font-size:55px}}
-@media(max-width:560px){.top{height:68px}.topin{width:calc(100% - 24px)}.brandtxt small{display:none}.auth span{display:none}.hub{min-height:calc(100vh - 68px)}.side{min-height:590px}.content,.police .content,.diicot .content{padding:50px 20px}.logo{height:100px}.diicot .logo{height:86px}.title{font-size:44px}.desc{font-size:13px}.enter{height:51px;padding:0 19px}}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#050911;color:#fff;font-family:Inter,Arial,sans-serif}a{color:inherit;text-decoration:none}
+:root{--blue:#2585ff;--gold:#e8ac16;--line:rgba(255,255,255,.08)}
+.header{height:82px;background:rgba(5,9,17,.96);border-bottom:1px solid var(--line);display:flex;align-items:center;position:relative;z-index:10}
+.nav{width:min(1500px,calc(100% - 52px));margin:auto;display:flex;justify-content:space-between;align-items:center}
+.brand{display:flex;align-items:center;gap:13px}.brand-badge{width:43px;height:43px;border-radius:12px;background:linear-gradient(145deg,#0d1c33,#0a0f19);border:1px solid rgba(82,153,255,.25);display:grid;place-items:center;box-shadow:0 0 30px rgba(36,128,255,.09)}.brand-badge span{font-family:Oswald;font-size:13px;font-weight:700;color:#9cc8ff}.brand strong{font-family:Oswald;font-size:21px;letter-spacing:.13em}.brand small{display:block;color:#647287;font-size:8px;letter-spacing:.22em;margin-top:3px}
+.account{height:43px;padding:0 17px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#0a101a;display:flex;align-items:center;gap:9px;font-size:11px;font-weight:700}.dot{width:7px;height:7px;border-radius:50%;background:#3cda8a;box-shadow:0 0 12px #3cda8a}
+.portal{height:calc(100vh - 82px);min-height:690px;display:grid;grid-template-columns:1fr 1fr;position:relative;overflow:hidden}
+.panel{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;isolation:isolate}.panel:before{content:"";position:absolute;inset:0;z-index:-3;background-size:cover;background-position:center;transition:transform .7s ease}.panel:hover:before{transform:scale(1.025)}
+.police:before{background-image:url('/uploads/politia-cover.jpg')}.diicot:before{background-image:url('/uploads/diicot-index-bg.png')}
+.panel:after{content:"";position:absolute;inset:0;z-index:-2}.police:after{background:linear-gradient(90deg,rgba(4,10,20,.96),rgba(5,19,39,.86)),radial-gradient(circle at 65% 45%,rgba(35,130,255,.2),transparent 40%)}.diicot:after{background:linear-gradient(270deg,rgba(10,8,3,.97),rgba(29,20,4,.88)),radial-gradient(circle at 35% 45%,rgba(230,170,18,.16),transparent 40%)}
+.panel-inner{width:min(510px,76%);text-align:center;position:relative;z-index:2}
+.eyebrow{display:flex;justify-content:center;align-items:center;gap:11px;font-size:9px;font-weight:800;letter-spacing:.24em;text-transform:uppercase;margin-bottom:26px}.eyebrow:before,.eyebrow:after{content:"";width:31px;height:1px;background:currentColor;opacity:.65}.police .eyebrow{color:#67aaff}.diicot .eyebrow{color:#cda238}
+.logo-box{height:135px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}.logo-box img{max-height:125px;max-width:245px;object-fit:contain;filter:drop-shadow(0 15px 30px rgba(0,0,0,.5))}.diicot .logo-box img{max-height:105px;max-width:300px}
+.fallback-logo{display:none;font-family:Oswald;font-size:48px;color:var(--gold);font-weight:700;letter-spacing:.04em}
+h1{font-family:Oswald,sans-serif;font-size:58px;line-height:1;margin:0;text-transform:uppercase;letter-spacing:.015em}.police h1 span{color:var(--blue)}.diicot h1{color:#f0b41d}
+.accent{width:54px;height:2px;margin:21px auto;background:var(--blue);box-shadow:0 0 16px rgba(37,133,255,.6)}.diicot .accent{background:var(--gold);box-shadow:0 0 16px rgba(232,172,22,.45)}
+.desc{min-height:51px;color:#a3afbf;font-size:13px;line-height:1.7;margin:0 auto 30px;max-width:450px}.diicot .desc{color:#aaa28e}
+.enter{height:55px;min-width:245px;padding:0 24px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;gap:16px;font-family:Oswald;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;transition:.22s}.enter:hover{transform:translateY(-3px)}.police .enter{background:linear-gradient(135deg,#146eff,#2c92ff);box-shadow:0 15px 35px rgba(24,116,255,.2)}.diicot .enter{background:linear-gradient(135deg,#c88a05,#efb929);color:#151005;box-shadow:0 15px 35px rgba(220,159,15,.16)}
+.meta{margin-top:18px;font-size:8px;font-weight:700;letter-spacing:.17em;color:#64748b;text-transform:uppercase}.meta b{color:#8da4c2}.diicot .meta{color:#74694a}.diicot .meta b{color:#a99459}
+.divider{position:absolute;left:50%;top:5%;bottom:5%;width:1px;background:linear-gradient(transparent,rgba(255,255,255,.12) 15%,rgba(150,115,255,.38) 50%,rgba(255,255,255,.12) 85%,transparent);z-index:4}.hubtag{position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);width:62px;height:62px;border-radius:18px;background:#080d16;border:1px solid rgba(151,111,255,.35);box-shadow:0 0 35px rgba(117,74,210,.18);display:grid;place-items:center}.hubtag span{font-family:Oswald;font-size:12px;letter-spacing:.09em;color:#cbb6ff;text-align:center;line-height:1.1}
+.footer{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:6;font-size:7px;letter-spacing:.23em;color:#4d5b6e;text-transform:uppercase;white-space:nowrap}
+@media(max-width:900px){.portal{height:auto;grid-template-columns:1fr}.panel{min-height:650px}.divider,.hubtag,.footer{display:none}.panel-inner{width:min(510px,86%)}}
+@media(max-width:520px){.header{height:70px}.nav{width:calc(100% - 26px)}.brand small{display:none}.account{padding:0 12px}.account span{display:none}.portal{min-height:0}.panel{min-height:570px}.logo-box{height:110px}.logo-box img{max-height:100px}h1{font-size:45px}.desc{font-size:12px}.enter{min-width:220px;height:51px}}
 </style>
 </head>
 <body>
-<header class="top">
-  <div class="topin">
-    <a class="brand" href="/">
-      <span class="brandmark"><img src="/uploads/politia-romana-logo.png" alt="MAI"></span>
-      <span class="brandtxt"><b>HUB MAI</b><small>RUSH ROMÂNIA · PORTAL INSTITUȚIONAL</small></span>
-    </a>
-    <div id="authArea"><a class="auth" href="/auth/discord"><i class="statusdot"></i><span>Autentificare Discord</span></a></div>
-  </div>
-</header>
-
-<main class="hub">
-  <section class="side police">
-    <div class="content">
-      <div class="kicker"><i></i> Structură operativă</div><br>
-      <img class="logo" src="/uploads/politia-romana-logo.png" alt="Poliția Română">
-      <h1 class="title">POLIȚIA <em>ROMÂNĂ</em></h1>
-      <div class="rule"></div>
-      <p class="desc">Accesează centrul Poliției pentru personal, rapoarte, activități, documente, sancțiuni și administrarea structurii.</p>
-      <div class="actions"><a class="enter" href="/dashboard">Intră pe site Poliție <span class="arrow">→</span></a></div>
-      <div class="info"><span>●</span><b>POLIȚIE</b> · DASHBOARD SECURIZAT</div>
-    </div>
-  </section>
-
-  <section class="side diicot">
-    <div class="content">
-      <div class="kicker"><i></i> Structură specializată</div><br>
-      <img class="logo" src="/uploads/diicot-logo.png" alt="DIICOT">
-      <h1 class="title">DIICOT</h1>
-      <div class="rule"></div>
-      <p class="desc">Accesează centrul DIICOT pentru personal, rapoarte, razii, antrenamente, documente și administrarea structurii.</p>
-      <div class="actions"><a class="enter" href="https://diicotro.rushdiicot6.workers.dev/dashboard">Intră pe site DIICOT <span class="arrow">→</span></a></div>
-      <div class="info"><span>●</span><b>DIICOT</b> · DASHBOARD SECURIZAT</div>
-    </div>
-  </section>
-
-  <div class="centerline"></div>
-  <div class="core"><div class="corein"><div class="shield">MAI</div><strong>HUB MAI</strong><span>Selectează structura</span></div></div>
-  <div class="bottom">MINISTERUL AFACERILOR INTERNE · RUSH ROMÂNIA</div>
+<header class="header"><div class="nav">
+<a class="brand" href="/"><div class="brand-badge"><span>MAI</span></div><div><strong>HUB MAI</strong><small>RUSH ROMÂNIA · CENTRU DE COMANDĂ</small></div></a>
+<div id="auth"><a class="account" href="/auth/discord"><i class="dot" style="background:#7289da;box-shadow:0 0 12px #7289da"></i><span>AUTENTIFICARE</span></a></div>
+</div></header>
+<main class="portal">
+<section class="panel police"><div class="panel-inner">
+<div class="eyebrow">Structură operativă</div>
+<div class="logo-box"><img src="/uploads/politia-romana-logo.png" alt="Poliția Română"></div>
+<h1>POLIȚIA <span>ROMÂNĂ</span></h1><div class="accent"></div>
+<p class="desc">Centrul operațional pentru personal, rapoarte, activități, documente și administrarea structurii.</p>
+<a class="enter" href="/dashboard">Intră pe site Poliție <b>→</b></a>
+<div class="meta">● &nbsp;<b>POLIȚIE</b>&nbsp; · &nbsp;ACCES SECURIZAT</div>
+</div></section>
+<section class="panel diicot"><div class="panel-inner">
+<div class="eyebrow">Structură specializată</div>
+<div class="logo-box"><img src="/uploads/diicot-logo.png" alt="DIICOT" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><div class="fallback-logo">DIICOT</div></div>
+<h1>DIICOT</h1><div class="accent"></div>
+<p class="desc">Centrul operațional pentru personal, rapoarte, razii, antrenamente, documente și administrarea structurii.</p>
+<a class="enter" href="https://diicotro.rushdiicot6.workers.dev/dashboard">Intră pe site DIICOT <b>→</b></a>
+<div class="meta">● &nbsp;<b>DIICOT</b>&nbsp; · &nbsp;ACCES SECURIZAT</div>
+</div></section>
+<div class="divider"></div><div class="hubtag"><span>HUB<br>MAI</span></div>
+<div class="footer">Ministerul Afacerilor Interne · Rush România</div>
 </main>
-
 <script>
-(async()=>{
-  try{
-    const r=await fetch('/api/me',{credentials:'include'});
-    if(!r.ok)return;
-    const u=await r.json();
-    if(!u||u.error)return;
-    document.getElementById('authArea').innerHTML='<a class="auth" href="/dashboard"><i class="statusdot" style="background:#35d07f;box-shadow:0 0 14px #35d07f"></i><span>'+escapeHtml(u.global_name||u.username||'Cont conectat')+'</span></a>';
-  }catch{}
-})();
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+(async()=>{try{const r=await fetch('/api/me',{credentials:'include'});if(!r.ok)return;const u=await r.json();if(!u||u.error)return;document.getElementById('auth').innerHTML='<a class="account" href="/dashboard"><i class="dot"></i><span>'+esc(u.global_name||u.username||'CONT CONECTAT')+'</span></a>'}catch{}})();
 </script>
-</body>
-</html>
+</body></html>
