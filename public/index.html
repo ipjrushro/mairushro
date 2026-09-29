@@ -70,6 +70,21 @@ body.members-open #membersView{display:block}
 @media(max-width:900px){#membersView .board{grid-template-columns:1fr}#membersView .controls{grid-template-columns:1fr}}
 @media(max-width:520px){.membersHero h1{font-size:31px}.membersHero .stats{flex-wrap:wrap}#membersView .board,#membersView .controls{padding-left:13px;padding-right:13px}}
 
+
+/* ===== HUB MAI / COD PENAL ===== */
+#penalView{display:none;position:relative;z-index:3;min-height:100vh;padding:112px 24px 70px}
+body.penal-open #homeView,body.penal-open #membersView{display:none!important}
+body.penal-open #penalView{display:block}
+.penalHub{max-width:1450px;margin:auto}
+.penalHero{text-align:center;margin-bottom:28px}.penalHero .eyebrow{display:inline-flex;padding:7px 11px;border:1px solid rgba(240,180,29,.2);border-radius:99px;color:#e6b84a;background:rgba(240,180,29,.05);font-size:8px;letter-spacing:.18em;text-transform:uppercase}
+.penalHero h1{font-family:Oswald,sans-serif;font-size:45px;letter-spacing:.1em;margin:14px 0 6px}.penalHero h1 span{background:linear-gradient(90deg,#62aaff,#e8e2ff,#f0b41d);-webkit-background-clip:text;color:transparent}.penalHero p{font-size:10px;color:#71839a}
+.penalBack{display:inline-flex;margin-top:15px;padding:9px 13px;border:1px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.035);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#91a0b5}
+.penalShell{display:grid;grid-template-columns:235px 1fr;gap:14px;background:rgba(7,14,25,.62);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:14px;box-shadow:0 25px 80px rgba(0,0,0,.28);backdrop-filter:blur(18px)}
+.penalSide,.penalMain{border:1px solid rgba(255,255,255,.06);background:rgba(11,22,37,.78);border-radius:13px}.penalSide{padding:15px}.penalSide b{display:block;font-family:Oswald;letter-spacing:.1em;margin:3px 0 13px}.penalCats{display:grid;gap:6px}.penalCat{border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.025);color:#8090a7;padding:10px;border-radius:8px;text-align:left;font-size:9px;cursor:pointer}.penalCat.active,.penalCat:hover{color:#fff;border-color:rgba(65,146,255,.3);background:rgba(37,136,255,.08)}
+.penalMain{padding:15px}.penalToolbar{display:grid;grid-template-columns:1fr minmax(260px,430px);gap:12px;align-items:center;margin-bottom:13px}.penalToolbar strong{font-family:Oswald;letter-spacing:.08em}.penalSearch{height:43px;width:100%;border:1px solid rgba(255,255,255,.08);background:#0b1727;border-radius:10px;color:#fff;padding:0 14px;outline:none}
+.penalArticles{display:grid;gap:8px;max-height:670px;overflow:auto;padding-right:4px}.penalArticle{display:grid;grid-template-columns:68px 1fr auto;gap:13px;align-items:center;border:1px solid rgba(255,255,255,.06);background:linear-gradient(110deg,rgba(18,32,51,.92),rgba(11,22,37,.75));border-radius:11px;padding:13px;transition:.2s}.penalArticle:hover{transform:translateY(-1px);border-color:rgba(81,155,255,.25)}.penalNr{font-family:Oswald;font-size:13px;color:#65aaff;text-align:center;border-right:1px solid rgba(255,255,255,.07);padding-right:12px}.penalText h3{font-size:12px;margin:0 0 5px}.penalText p{font-size:9px;line-height:1.5;color:#71839a;margin:0}.penalSanctions{display:flex;gap:6px}.penalSanction{min-width:82px;padding:8px 10px;border-radius:7px;border:1px solid rgba(240,180,29,.18);background:rgba(240,180,29,.045);font-size:8px;color:#8797ac}.penalSanction b{display:block;color:#e9b83c;font-size:10px;margin-top:3px}
+@media(max-width:900px){.penalShell{grid-template-columns:1fr}.penalCats{display:flex;overflow:auto}.penalCat{white-space:nowrap}.penalToolbar{grid-template-columns:1fr}.penalArticle{grid-template-columns:55px 1fr}.penalSanctions{grid-column:1/-1}}
+
 </style></head>
 <body><canvas id="fx"></canvas><div class="noise"></div>
 <header><div class="nav"><a class="brand" href="/"><span class="brandLogo"><img src="/uploads/politia-romana-logo.png"></span><span><b>HUB MAI</b><small>RUSH ROMÂNIA · CENTRU OPERAȚIONAL</small></span></a><div id="auth"><a class="account" href="/auth/discord"><i class="online" style="background:#7289da;box-shadow:0 0 12px #7289da"></i><span>AUTENTIFICARE DISCORD</span></a></div></div></header>
@@ -86,7 +101,7 @@ body.members-open #membersView{display:block}
 
 <section class="modules"><div class="moduleShell"><div class="moduleGrid">
 <a class="module" href="/dashboard?section=docs"><div class="moduleBg" style="background-image:url('/uploads/politia-secondary.jpg')"></div><div class="moduleIcon">◇</div><div class="moduleArrow">›</div><div class="moduleText"><b>Regulament MAI</b><span>Accesează documentele și regulamentele structurii.</span></div></a>
-<a class="module purple" href="/dashboard?section=penal-code"><div class="moduleBg" style="background-image:url('/uploads/card-cod-penal-hd.jpg')"></div><div class="moduleIcon">⚖</div><div class="moduleArrow">›</div><div class="moduleText"><b>Cod Penal</b><span>Deschide direct secțiunea Cod Penal din dashboard.</span></div></a>
+<a class="module purple" href="#cod-penal" data-open-penal="1"><div class="moduleBg" style="background-image:url('/uploads/card-cod-penal-hd.jpg')"></div><div class="moduleIcon">⚖</div><div class="moduleArrow">›</div><div class="moduleText"><b>Cod Penal</b><span>Deschide direct secțiunea Cod Penal din dashboard.</span></div></a>
 <a class="module purple" href="/dashboard?section=leadership"><div class="moduleBg" style="background-image:url('/uploads/card-admin-hd.jpg')"></div><div class="moduleIcon">▤</div><div class="moduleArrow">›</div><div class="moduleText"><b>Responsabilități MAI</b><span>Conducere, anunțuri și administrarea responsabilităților.</span></div></a>
 <a class="module" href="#membri" data-open-members="1"><div class="moduleBg" style="background-image:url('/uploads/card-personal-hd.jpg')"></div><div class="moduleIcon">♙</div><div class="moduleArrow">›</div><div class="moduleText"><b>Membri MAI</b><span>Deschide direct personalul și structura activă.</span></div></a>
 <a class="module red" href="/dashboard?section=overview&complaint=open"><div class="moduleBg" style="background-image:url('/uploads/card-rapoarte-hd.jpg')"></div><div class="moduleIcon">△</div><div class="moduleArrow">›</div><div class="moduleText"><b>Reclamații</b><span>Deschide formularul pentru o reclamație internă.</span></div></a>
@@ -108,7 +123,1196 @@ body.members-open #membersView{display:block}
   <div class="controls"><input class="search" id="memberSearch" placeholder="⌕  Caută după nume, callsign sau grad..."><select class="select" id="memberRankFilter"><option value="">Toate gradele</option></select></div>
   <main class="board" id="memberBoard"><div class="loading"><div class="spinner"></div>Se încarcă membrii reali din Discord...</div></main>
 </div>
+
+<div id="penalView">
+  <div class="penalHub">
+    <div class="penalHero">
+      <span class="eyebrow">Registru legislativ MAI</span>
+      <h1><span>COD PENAL</span></h1>
+      <p>Același Cod Penal utilizat în POLIȚIE și DIICOT</p>
+      <a href="#acasa" class="penalBack" id="penalBack">← Înapoi la HUB MAI</a>
+    </div>
+    <div class="penalShell">
+      <aside class="penalSide"><b>CATEGORII</b><div class="penalCats" id="hubPenalCats"></div></aside>
+      <section class="penalMain">
+        <div class="penalToolbar"><strong id="hubPenalTitle">TOATE ARTICOLELE</strong><input id="hubPenalSearch" class="penalSearch" placeholder="Caută articol, infracțiune sau sancțiune..."></div>
+        <div class="penalArticles" id="hubPenalArticles"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
 <script>
+
+const HUB_PENAL_CODE = [
+
+        /* =====================================================
+           LEGEA 1
+        ====================================================== */
+
+        {
+            id: "101",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 101",
+            title: "Refuzul legitimarii",
+            jail: "0 - 5",
+            fine: "375.000",
+            description:
+                "Refuzul legitimarii in fata unui organ a legii"
+        },
+
+        {
+            id: "102",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 102",
+            title: "Lipsa Carte de Identitate",
+            jail: "",
+            fine: "312.500",
+            description:
+                "Persoanele care nu detin un buletin sau o C.I. asupra lor"
+        },
+
+        {
+            id: "103",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 103",
+            title: "Jignire",
+            jail: "",
+            fine: "250.000",
+            description:
+                "Fapta prin care o persoana induce o stare de frica sau neliniste prin proliferare de injurii sau amenintari"
+        },
+
+        {
+            id: "104",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 104",
+            title: "Amenintare",
+            jail: "10",
+            fine: "600.000",
+            description:
+                "Constrangerea unei persoane pentru a o determina sa faca ceva sau sa nu faca prin amenintare de divulgare informatii"
+        },
+
+        {
+            id: "105",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 105",
+            title: "Santaj",
+            jail: "15",
+            fine: "625.000",
+            description:
+                "Injurii sau jigniri adresate oricarei persoane indiferent de statutul acesteia."
+        },
+
+        {
+            id: "106",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 106",
+            title: "Deranjarea ordinii publice",
+            jail: "",
+            fine: "312.500",
+            description:
+                "Perturbarea linistii publice prin crearea de zgomote, larma, galagie, boxe, muzica data din masina, etc."
+        },
+
+        {
+            id: "107",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 107",
+            title: "Cersetorie",
+            jail: "",
+            fine: "125.000",
+            description:
+                "Persoanele care incearca sa obtina bani fara a presta un serviciu legal"
+        },
+
+        {
+            id: "108",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 108",
+            title: "Arme Albe",
+            jail: "6 - 18",
+            fine: "687.500",
+            description:
+                "Detinerea de arme albe fara a avea un motiv intemeiat se pedepseste cu confiscare si amenda"
+        },
+
+        {
+            id: "109",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 109",
+            title: "Arme de foc",
+            jail: "30 - 60",
+            fine: "725.000",
+            description:
+                "Folosirea unei arme de foc fara a detine un permis de port arma se pedepseste cu confiscare, amenda si inchisoare"
+        },
+
+        {
+            id: "110",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 110",
+            title: "Acoperirea fetei",
+            jail: "0 - 20",
+            fine: "400.000",
+            description:
+                "Acoperirea fetei cu elemente vestimentare sau tatuaje fara a avea un motiv bine intemeiat se pedepseste"
+        },
+
+        {
+            id: "111",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 111",
+            title: "Incalcarea unei zone restrictionate",
+            jail: "0 - 30",
+            fine: "375.000",
+            description:
+                "Patrunderea intr-o zona restrictionata clasa A, AA, AAA sau a oricarei zone delimitata accesului civililor."
+        },
+
+        {
+            id: "112",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 112",
+            title: "Prostitutie",
+            jail: "0 - 10",
+            fine: "437.500",
+            description:
+                "Oferirea sau prestarea de servicii sexuale in schimbul unor sume de bani sau beneficii materiale."
+        },
+
+        {
+            id: "113",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 113",
+            title: "Hartuire",
+            jail: "15 - 20",
+            fine: "725.000",
+            description:
+                "Agasarea unei persoane, urmarirea ei, intruziunea in viata sa privata fara un drept legal"
+        },
+
+        {
+            id: "114",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 114",
+            title: "Nudism",
+            jail: "",
+            fine: "250.000",
+            description:
+                "Persoanele care-si expun partile intime sau au o tinuta indecenta in zone publice"
+        },
+
+        {
+            id: "115",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 115",
+            title: "Furtul sau tentativa",
+            jail: "20 - 40",
+            fine: "125.000",
+            description:
+                "Furtul unui autovehicul sau a oricarui obiect chiar si tentativa se pedepseste cu amenda plus inchisoare."
+        },
+
+        {
+            id: "116",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 116",
+            title: "Vatamare corporala",
+            jail: "0 - 15",
+            fine: "250.000",
+            description:
+                "Fapta prin care o persoana agreseaza fizic o alta persoana."
+        },
+
+        {
+            id: "117",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 117",
+            title: "Omor din Culpa",
+            jail: "30 - 60",
+            fine: "843.750",
+            description:
+                "Fapta prin care o persoana ucide pe cineva fara ca faptuitorul sa-si fi dorit asta. Ex: Accident rutier, impingere, etc."
+        },
+
+        {
+            id: "118",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 118",
+            title: "Vandalism",
+            jail: "5 - 10",
+            fine: "350.000",
+            description:
+                "Distrugeri de bunuri sau proprietati, autovehicule, etc."
+        },
+
+        {
+            id: "119",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 119",
+            title: "Rasism",
+            jail: "0 - 10",
+            fine: "175.000",
+            description:
+                "Persoana care jigneste persoane care apartin altor rase sau instiga la ura"
+        },
+
+        {
+            id: "120",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 120",
+            title: "Atacarea unei persoane cu o arma alba",
+            jail: "20 - 30",
+            fine: "625.000",
+            description:
+                "Lovirea sau atacarea unei persoane cu o arma alba fara a avea drept legal pentru a face asta"
+        },
+
+        {
+            id: "121",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 121",
+            title: "Apelarea abuziva a numarului de urgenta 112",
+            jail: "0 - 15",
+            fine: "175.000",
+            description:
+                "Apelarea abuziva sau fara motiv de urgenta a numarului de la Politie, Smurd, Diicot, Etc."
+        },
+
+        {
+            id: "122",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 122",
+            title: "Viol sau tentativa",
+            jail: "15 - 60",
+            fine: "725.000",
+            description:
+                "Agresarea sexuala a unei persoane sau incercarea de intretinere de relatii intime cu aceasta fara acordul ei"
+        },
+
+        {
+            id: "123",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 123",
+            title: "Deranjarea inutila a unui organ a legii",
+            jail: "20 - 40",
+            fine: "450.000",
+            description:
+                "Deranjarea inutila a unui organ a legii in timp ce acesta se afla intr-o misiune sau o actiune de mare risc"
+        },
+
+        {
+            id: "124",
+            category: "LEGEA 1",
+            categoryLabel: "LEGEA 1",
+            article: "Articolul 124",
+            title: "Protest Neautorizat",
+            jail: "0 - 15",
+            fine: "125.000",
+            description:
+                "Protest care nu a fost autorizat de catre Primarie sau Politie."
+        },
+
+
+        /* =====================================================
+           LEGISLATIE RUTIERA
+        ====================================================== */
+
+        {
+            id: "200",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 200",
+            title: "Condus Imprudent",
+            jail: "Confiscare Permis",
+            fine: "150.000",
+            description:
+                "Incalcarea legilor de circulatie rutiera : trecerea pe rosu, schimbarea benzilor, drift-uri, posibila suspendarea permisului."
+        },
+
+        {
+            id: "201",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 201",
+            title: "Incalcarea linei continuie",
+            jail: "Confiscare Permis",
+            fine: "100.000",
+            description:
+                "Depasirea marcajului dublu continuu fara a avea un drept legal sau o urgenta se pedepseste cu amenda plus suspendarea permisului."
+        },
+
+        {
+            id: "202",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 202",
+            title: "Condus pe contrasens",
+            jail: "Confiscare Permis",
+            fine: "200.000",
+            description:
+                "Condusul pe contrasens si punerea in pericol a altor participanti la trafic se pedepseste cu suspendarea permisului si inchisoare dupa caz"
+        },
+
+        {
+            id: "203",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 203",
+            title: "Depasirea limitei de viteza",
+            jail: "Confiscare Permis",
+            fine: "125.000",
+            description:
+                "Viteza legala in oras este de 70 KM/h, Drumuri Nationale 100 Km/h, autostrada 150 Km/h. Depasirea cu peste 50km/h = suspendare permis."
+        },
+
+        {
+            id: "204",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 204",
+            title: "Nerespectarea culorii rosii a semaforului",
+            jail: "0",
+            fine: "250.000",
+            description:
+                "Orice conducator de autovehicul care trece pe culoarea rosie a semaforului se pedepseste contraventional."
+        },
+
+        {
+            id: "205",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 205",
+            title: "Acoperirea fetei la volan",
+            jail: "0 - 30",
+            fine: "500.000",
+            description:
+                "Orice conducator de autovehicul care poarta o masca, bandana sau orice alt obiect ce ii acopera fata va fi sanctionat conform codului penal."
+        },
+
+        {
+            id: "206",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 206",
+            title: "Claxonare excesiva / Claxon Ilegal",
+            jail: "0 - 5",
+            fine: "750.000",
+            description:
+                "Orice cetățean care claxonează în zone interzise sau într-un mod excesiv."
+        },
+
+        {
+            id: "207",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 207",
+            title: "Accident Rutier",
+            jail: "Retinere Permis",
+            fine: "100.000",
+            description:
+                "Accident rutier fara victime. Daca este din culpa se va retine permisul pe 30 zile."
+        },
+
+        {
+            id: "208",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 208",
+            title: "Accident rutier cu victime",
+            jail: "10 - 30",
+            fine: "150.000",
+            description:
+                "Accident rutier in urma caruia au rezultat una sau mai multe victime omenesti se pedepseste cu suspendarea permisului si inchisoare."
+        },
+
+        {
+            id: "209",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 209",
+            title: "Fuga de Politie",
+            jail: "40 - 60",
+            fine: "500.000",
+            description:
+                "Fuga de un organ de Politie sau Agent Guvernamental se pedepseste cu anularea permisului auto, amenda si inchisoare."
+        },
+
+        {
+            id: "210",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 210",
+            title: "Modificari Neomologate",
+            jail: "",
+            fine: "250.000",
+            description:
+                "Modificari ale unei masini fara a detine omologare la momentul verificarii."
+        },
+
+        {
+            id: "211",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 211",
+            title: "Parcare Neregulamentara",
+            jail: "",
+            fine: "250.000",
+            description:
+                "Orice cetățean care își parchează ilegal mașina, fără să se asigure că este o zonă care permite parcarea."
+        },
+
+        {
+            id: "212",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 212",
+            title: "Lipsa asigurare",
+            jail: "",
+            fine: "250.000",
+            description:
+                "Conducatorul auto ce nu detine o asigurare asupra sa in momentul verificarii"
+        },
+
+        {
+            id: "213",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 213",
+            title: "Condusul fara permis (Lipsa Permis AUTO)",
+            jail: "10 - 30",
+            fine: "625.000",
+            description:
+                "Orice cetățean care conduce un vehicul fără să aibă un permis de conducere valid."
+        },
+
+        {
+            id: "214",
+            category: "RUTIERA",
+            categoryLabel: "LEGISLAȚIE RUTIERĂ",
+            article: "Articolul 214",
+            title: "Neacordare de prioritate",
+            jail: "Confiscare Permis",
+            fine: "500.000",
+            description:
+                "Neacordarea de prioritate duce la anularea permisului de conducere."
+        },
+
+
+        /* =====================================================
+           ACTIVITATI INFRACTIONALE
+        ====================================================== */
+
+        {
+            id: "300.1",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 300.1",
+            title: "Posesie de arme fara drept legal (Calibru Mare)",
+            jail: "50 - 60",
+            fine: "25 Mil / Arma",
+            description:
+                "Persoana care are o arma sau mai multe si nu are asupra sa un permis de port arma."
+        },
+
+        {
+            id: "300",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 300",
+            title: "Posesie de arme fara drept legal (permis port arma mica)",
+            jail: "15 - 40",
+            fine: "12 Mil / Arma",
+            description:
+                "Persoana care are o arma sau mai multe si nu are asupra sa un permis de port arma."
+        },
+
+        {
+            id: "301",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 301",
+            title: "Droguri neprocesate",
+            jail: "10 - 15",
+            fine: "15.000 / buc",
+            description:
+                "Detinerea de droguri neprocesate"
+        },
+
+        {
+            id: "302",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 302",
+            title: "Droguri procesate",
+            jail: "20 - 30",
+            fine: "25.000 / buc",
+            description:
+                "Detinerea de droguri procesate"
+        },
+
+        {
+            id: "303",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 303",
+            title: "Trafic de armament",
+            jail: "20 - 30",
+            fine: "37.500 / buc",
+            description:
+                "Persoana care este gasita cu componente din care se pot confectiona arme va fi acuzata de trafic de armament."
+        },
+
+        {
+            id: "304",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 304",
+            title: "Carduri",
+            jail: "10 - 15",
+            fine: "75.000 / buc",
+            description:
+                "Persoana ce are asupra sa carduri, buletine sau legitimatii falsificate"
+        },
+
+        {
+            id: "305",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 305",
+            title: "Bani Nemarcati",
+            jail: "25 - 40",
+            fine: "75.000 / buc",
+            description:
+                "Banii nemarcati se considera a fi proveniti din jafuri de magazine sau banci."
+        },
+
+        {
+            id: "306",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 306",
+            title: "Monezi Bancare Patrimoniu (sindicat)",
+            jail: "0 - 10",
+            fine: "18.750 / buc",
+            description:
+                "Monedele din aur se considera Patrimoniu, apartin BANCII iar detinerea este ilegala."
+        },
+
+        {
+            id: "307",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 307",
+            title: "Jaf la Magazin",
+            jail: "10 - 20",
+            fine: "250.000",
+            description:
+                "Spargerea unui magazin cu scopul de a sustrage bunuri sau bani."
+        },
+
+        {
+            id: "308",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 308",
+            title: "Jaf la Banca",
+            jail: "25 - 50",
+            fine: "225.000",
+            description:
+                "Spargerea unei banci cu scopul de a sustrage bunuri sau bani."
+        },
+
+        {
+            id: "309",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 309",
+            title: "Detinere de Minereuri",
+            jail: "",
+            fine: "50.000 / buc",
+            description:
+                "Detinerea in cantitati mari a minereurilor (peste 40)."
+        },
+
+        {
+            id: "310",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 310",
+            title: "Detinere de Tigari de Contrabanda",
+            jail: "15 - 25",
+            fine: "50.000 / buc",
+            description:
+                "Detinerea de tigari ce nu au un timbru fiscal se pedepseste ca si contrabanda."
+        },
+
+        {
+            id: "311",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 311",
+            title: "Rapire",
+            jail: "50 - 100",
+            fine: "375.000.000",
+            description:
+                "Se pedepsește fapta de a lua sau reține o persoană împotriva voinței acesteia."
+        },
+
+        {
+            id: "312",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 312",
+            title: "Omor Calificat",
+            jail: "150",
+            fine: "125.000.000",
+            description:
+                "Fapta acelei persoane ce omoara cu premeditare o alta persoana."
+        },
+
+        {
+            id: "313",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 313",
+            title: "Tentativa de Omor",
+            jail: "50 - 100",
+            fine: "190.500.000",
+            description:
+                "Intentia cuiva de a ucide o alta persoana se pedepseste."
+        },
+
+        {
+            id: "314",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 314",
+            title: "Talharie",
+            jail: "24 - 36",
+            fine: "250.000.000",
+            description:
+                "Actiunea prin care o persoana deposedeaza o alta persoana de bunuri sau bani prin acte de violenta."
+        },
+
+        {
+            id: "315",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 315",
+            title: "Evaziune Fiscala",
+            jail: "15 - 60",
+            fine: "250.000.000",
+            description:
+                "Tentativa sau fapta prin care o persoana sau o organizatie incearca evitarea platii taxelor catre stat."
+        },
+
+        {
+            id: "316",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 316",
+            title: "Detinere de obiecte ilegale",
+            jail: "0 - 30",
+            fine: "2.500.000 / buc",
+            description:
+                "Placi antiglont, Cranii, portofele obtinute in urma profanarilor de morminte, etc."
+        },
+
+        {
+            id: "317",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 317",
+            title: "Profanare de morminte",
+            jail: "10 - 20",
+            fine: "250.000",
+            description:
+                "Dezgroparea osemintelor umane, deranjarea mormintelor."
+        },
+
+        {
+            id: "318",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 318",
+            title: "Fuga de la Locul Accidentului",
+            jail: "30 - 40",
+            fine: "200.000.000",
+            description:
+                "Fuga de la un accident unde a avut ca rezultat victime omenesti"
+        },
+
+        {
+            id: "319",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 319",
+            title: "Inselatorie",
+            jail: "60 - 100",
+            fine: "25m - 50m",
+            description:
+                "Acțiuni intenționate prin care o persoană păcălește o altă persoană pentru a obține bani sau bunuri."
+        },
+
+        {
+            id: "320",
+            category: "INFRACTIONALE",
+            categoryLabel: "ACTIVITĂȚI INFRACȚIONALE",
+            article: "Articolul 320",
+            title: "Deținerea Neautorizată de Planuri Tehnice pentru Armament",
+            jail: "25 - 50",
+            fine: "750.000",
+            description:
+                "Deținerea, crearea sau modificarea fără drept a planurilor tehnice destinate fabricării de armament."
+        },
+
+
+        /* =====================================================
+           INFRACTIUNI GRAVE IMPOTRIVA LEGII
+        ====================================================== */
+
+        {
+            id: "400",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 400",
+            title: "Obstructia LEGII",
+            jail: "60 - 100",
+            fine: "4.300.000",
+            description:
+                "Impiedicarea unui organ a legii ce se afla intr-o actiune in desfasurare sau ajutarea unui infractor sa scape de lege."
+        },
+
+        {
+            id: "401",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 401",
+            title: "ULTRAJ",
+            jail: "50 - 100",
+            fine: "6.750.000",
+            description:
+                "Lovirea, amenintarea unui Membru Guvernamental si Rezistenta la arest agresiva."
+        },
+
+        {
+            id: "402",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 402",
+            title: "Fuga de autoritati",
+            jail: "36 - 70",
+            fine: "7.150.000",
+            description:
+                "Incercarea de a evada sau de a scapa de un Politist, Agent D.I.I.C.O.T. sau agent Guvernamental."
+        },
+
+        {
+            id: "403",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 403",
+            title: "Darea de Mita",
+            jail: "50",
+            fine: "6.250.000",
+            description:
+                "Incercarea de a corupe agentul de politie sau orice membru guvernamental"
+        },
+
+        {
+            id: "404",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 404",
+            title: "Necooperare",
+            jail: "50 - 100",
+            fine: "6.950.000",
+            description:
+                "Persoana ce refuza sa urmeze ordinele legale date de catre orice membru guvernamental"
+        },
+
+        {
+            id: "405",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 405",
+            title: "Prezentare Neautorizata",
+            jail: "25 - 50",
+            fine: "7.000.000",
+            description:
+                "Persoana ce pretinde a face parte din institutii guvernamentale."
+        },
+
+        {
+            id: "406",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 406",
+            title: "Arme Guvernamentale",
+            jail: "15 - 30",
+            fine: "6.250.000",
+            description:
+                "Persoana ce detine asupra sa armament de tip Guvernamental fara a avea acel drept legal"
+        },
+
+        {
+            id: "407",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 407",
+            title: "Omor GUV",
+            jail: "200 - 300",
+            fine: "x",
+            description:
+                "Persoana ce a omorat cu intentie un membru guvernamental"
+        },
+
+        {
+            id: "408",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 408",
+            title: "Tentativa de omor GUV",
+            jail: "150 - 250",
+            fine: "x",
+            description:
+                "Persoana ce a premeditat sau a incercat uciderea unui membru guvernamental."
+        },
+
+        {
+            id: "409",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 409",
+            title: "Ascunderea obiectelor",
+            jail: "40 - 60",
+            fine: "2.250.000",
+            description:
+                "Incercarea de a ascunde obiecte ce fac parte dintr-un dosar in cercetare."
+        },
+
+        {
+            id: "410",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 410",
+            title: "Fals in declaratii",
+            jail: "60 - 100",
+            fine: "6.250.000",
+            description:
+                "Oferirea de informatii false in cadrul unei anchete sau a unui interogatoriu."
+        },
+
+        {
+            id: "411",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 411",
+            title: "Rapirea GUV",
+            jail: "150 - 200",
+            fine: "12m - 50m",
+            description:
+                "Rapirea sau tentativa asupra oricarui grad guvernamental."
+        },
+
+        {
+            id: "412",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 412",
+            title: "Furtul unei autospeciale",
+            jail: "30 - 40",
+            fine: "31m - 70m",
+            description:
+                "Furtul sau tentativa de a fura o autospeciala de Politie, Diicot, Smurd, Jandarmerie, etc."
+        },
+
+        {
+            id: "413",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 413",
+            title: "Nerespectare ordine grade superioare - Revolta",
+            jail: "300 - 400",
+            fine: "20m - 50m",
+            description:
+                "Nerespectarea ordinului legal dat de un grad de conducere sau revolta."
+        },
+
+        {
+            id: "414",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 414",
+            title: "Amenintari GUV",
+            jail: "50 - 250",
+            fine: "65 Milioane - 25 Milioane",
+            description:
+                "Amenințări GUV — Riscuri și pericole care pot afecta securitatea și buna funcționare a unui guvern."
+        },
+
+        {
+            id: "415",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 415",
+            title: "Luarea in deradere GUV intr-o situatie serioasa",
+            jail: "50 - 150",
+            fine: "65 Milioane - 25 Milioane",
+            description:
+                "Comportamente ofensatoare sau lipsite de respect care subminează autoritatea."
+        },
+
+        {
+            id: "416",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 416",
+            title: "Rapirea si tentativa de omor GUV",
+            jail: "50 - 200",
+            fine: "x",
+            description:
+                "Rapirea unui membru guvernamental cu scopul de a suprima viata acestuia"
+        },
+
+        {
+            id: "417",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 417",
+            title: "(Tentativa) Asasinare GUV",
+            jail: "300+",
+            fine: "x",
+            description:
+                "Eliminarea deliberată și cu premeditare a unui reprezentant guvernamental."
+        },
+
+        {
+            id: "418",
+            category: "GRAVE",
+            categoryLabel: "INFRACȚIUNI GRAVE ÎMPOTRIVA LEGII",
+            article: "Articolul 418",
+            title: "Sechestrare GUV",
+            jail: "150+",
+            fine: "x",
+            description:
+                "Privarea de libertate, deliberată și cu premeditare, a unui reprezentant guvernamental."
+        },
+
+
+        /* =====================================================
+           MANDAT
+        ====================================================== */
+
+        {
+            id: "500",
+            category: "MANDAT",
+            categoryLabel: "MANDAT GRUPĂRI INFRACȚIONALE",
+            article: "Articolul 500",
+            title: "Constituirea sau apartenenta la o Grupare Infractionala",
+            jail: "20 - 60",
+            fine: "100.000.000 - 1.000.000.000",
+            description:
+                "Constituirea sau apartenenta la o Grupare Infractionala."
+        },
+
+        {
+            id: "501",
+            category: "MANDAT",
+            categoryLabel: "MANDAT GRUPĂRI INFRACȚIONALE",
+            article: "Articolul 501",
+            title: "Lider al unei Grupari Infractionale Organizate",
+            jail: "60 - 360",
+            fine: "10.000.000.000 - 100.000.000.000",
+            description:
+                "Poate beneficia de cautiune si avocat."
+        },
+
+        {
+            id: "502",
+            category: "MANDAT",
+            categoryLabel: "MANDAT GRUPĂRI INFRACȚIONALE",
+            article: "Articolul 502",
+            title: "Necooperare cu Autoritatile LEGII pe durata Mandatului",
+            jail: "PE VIATA",
+            fine: "",
+            description:
+                "Nu mai beneficiaza nici un membru de cautiune sau avocat."
+        },
+
+        {
+            id: "503",
+            category: "MANDAT",
+            categoryLabel: "MANDAT GRUPĂRI INFRACȚIONALE",
+            article: "Articolul 503",
+            title: "ESECUL DE A AJUNGE LA UN ACORD CU AUTORITATILE LEGII",
+            jail: "DESTRUCTURARE",
+            fine: "",
+            description:
+                "Se pedepseste prin destructurarea GRUPARII INFRACTIONALE."
+        },
+
+        {
+            id: "504",
+            category: "MANDAT",
+            categoryLabel: "MANDAT GRUPĂRI INFRACȚIONALE",
+            article: "Articolul 504",
+            title: "Atacarea cu arme de foc a oricarei persoane pe durata Mandatului",
+            jail: "PE VIATA",
+            fine: "",
+            description:
+                "Nu mai beneficiaza nici un membru de cautiune sau avocat."
+        },
+
+        {
+            id: "505",
+            category: "MANDAT",
+            categoryLabel: "MANDAT GRUPĂRI INFRACȚIONALE",
+            article: "Articolul 505",
+            title: "Atacarea cu arme de foc a organului de politie pe durata Mandatului",
+            jail: "PE VIATA",
+            fine: "",
+            description:
+                "Nu mai beneficiaza nici un membru de cautiune sau avocat."
+        },
+
+        {
+            id: "506",
+            category: "MANDAT",
+            categoryLabel: "MANDAT GRUPĂRI INFRACȚIONALE",
+            article: "Articolul 506",
+            title: "Atacarea cu arme de foc din partea inculpatilor pe durata Mandatului",
+            jail: "DESTRUCTURARE",
+            fine: "",
+            description:
+                "Se pedepseste prin destructurarea GRUPARII INFRACTIONALE."
+        },
+
+
+        /* =====================================================
+           ORDONANTE DE URGENTA
+        ====================================================== */
+
+        {
+            id: "600",
+            category: "OUG",
+            categoryLabel: "ORDONANȚE DE URGENȚĂ",
+            article: "Articolul 600",
+            title: "Posesie de arme in zonele de Razii",
+            jail: "60 - 120",
+            fine: "",
+            description:
+                "Confiscarea tuturor armelor si a obiectelor ilegale gasite asupra persoanei."
+        },
+
+        {
+            id: "601",
+            category: "OUG",
+            categoryLabel: "ORDONANȚE DE URGENȚĂ",
+            article: "Articolul 601",
+            title: "Atacarea cu arme de foc a oricarei persoane",
+            jail: "90 - 180",
+            fine: "",
+            description:
+                "Confiscarea tuturor armelor si a obiectelor ilegale gasite asupra persoanei."
+        },
+
+        {
+            id: "602",
+            category: "OUG",
+            categoryLabel: "ORDONANȚE DE URGENȚĂ",
+            article: "Articolul 602",
+            title: "Atacarea cu arme de foc a agentilor",
+            jail: "90 - 360",
+            fine: "",
+            description:
+                "INCHISOARE PE VIATA IN CAZ DE NECOOPERARE."
+        },
+
+        {
+            id: "603",
+            category: "OUG",
+            categoryLabel: "ORDONANȚE DE URGENȚĂ",
+            article: "Articolul 603",
+            title: "Constituirea si afilierea cu GRUPURI TERORISTE",
+            jail: "PE VIATA",
+            fine: "",
+            description:
+                "Se pedepseste cu inchisoare PE VIATA."
+        },
+
+        {
+            id: "604",
+            category: "OUG",
+            categoryLabel: "ORDONANȚE DE URGENȚĂ",
+            article: "Articolul 604",
+            title: "Uz de influenta",
+            jail: "PE VIATA",
+            fine: "",
+            description:
+                "Se include pentru avocati, etc."
+        },
+
+        {
+            id: "605",
+            category: "OUG",
+            categoryLabel: "ORDONANȚE DE URGENȚĂ",
+            article: "Articolul 605",
+            title: "Sentinta de peste 300 Luni",
+            jail: "PE VIATA",
+            fine: "",
+            description:
+                "Orice sentinta de peste 300 Luni se poate pedepsi ca inchisoare pe viata."
+        }
+
+    ];
+let hubPenalCategory="ALL";
+function hubPenalMoney(v){return String(v||"").trim()?("$"+String(v)):"—"}
+function hubPenalRender(){
+  const q=(document.getElementById("hubPenalSearch").value||"").toLowerCase().trim();
+  const rows=HUB_PENAL_CODE.filter(a=>(hubPenalCategory==="ALL"||a.category===hubPenalCategory)&&(!q||[a.article,a.title,a.description,a.fine,a.jail].join(" ").toLowerCase().includes(q)));
+  document.getElementById("hubPenalArticles").innerHTML=rows.length?rows.map(a=>`<article class="penalArticle"><div class="penalNr">${hmEsc(a.article)}</div><div class="penalText"><h3>${hmEsc(a.title)}</h3><p>${hmEsc(a.description||"")}</p></div><div class="penalSanctions"><div class="penalSanction">AMENDĂ<b>${hmEsc(hubPenalMoney(a.fine))}</b></div><div class="penalSanction">JAIL<b>${hmEsc(a.jail||"—")}</b></div></div></article>`).join(""):`<div class="empty">Nu a fost găsit niciun articol.</div>`;
+}
+function hubPenalInit(){
+  const cats=[...new Set(HUB_PENAL_CODE.map(a=>a.category))];
+  hubPenalCats.innerHTML=`<button class="penalCat active" data-c="ALL">TOATE ARTICOLELE (${HUB_PENAL_CODE.length})</button>`+cats.map(c=>`<button class="penalCat" data-c="${hmEsc(c)}">${hmEsc(c)} (${HUB_PENAL_CODE.filter(a=>a.category===c).length})</button>`).join("");
+  hubPenalCats.querySelectorAll(".penalCat").forEach(b=>b.onclick=()=>{hubPenalCategory=b.dataset.c;hubPenalCats.querySelectorAll(".penalCat").forEach(x=>x.classList.toggle("active",x===b));hubPenalTitle.textContent=hubPenalCategory==="ALL"?"TOATE ARTICOLELE":hubPenalCategory;hubPenalRender()});
+  hubPenalRender();
+}
+function hubOpenPenal(){document.body.classList.remove("members-open");document.body.classList.add("penal-open");hubPenalInit();scrollTo({top:0,behavior:"smooth"})}
+function hubClosePenal(){document.body.classList.remove("penal-open");scrollTo({top:0,behavior:"smooth"})}
+document.querySelectorAll("[data-open-penal]").forEach(x=>x.addEventListener("click",e=>{e.preventDefault();history.replaceState(null,"","#cod-penal");hubOpenPenal()}));
+document.getElementById("penalBack").addEventListener("click",e=>{e.preventDefault();history.replaceState(null,"",location.pathname);hubClosePenal()});
+document.getElementById("hubPenalSearch").addEventListener("input",hubPenalRender);
+if(location.hash==="#cod-penal")hubOpenPenal();
+
+
 
 let HUB_MEMBERS={police:[],diicot:[]}, hubMembersLoaded=false;
 const hmEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
