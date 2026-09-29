@@ -6,6 +6,7 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  "keep_vars": true,
 
   "vars": {
     "CLOUDFLARE_WORKERS": "1",
