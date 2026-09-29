@@ -1307,10 +1307,10 @@ function hubPenalInit(){
 }
 function hubOpenPenal(){document.body.classList.remove("members-open");document.body.classList.add("penal-open");hubPenalInit();scrollTo({top:0,behavior:"smooth"})}
 function hubClosePenal(){document.body.classList.remove("penal-open");scrollTo({top:0,behavior:"smooth"})}
-document.querySelectorAll("[data-open-penal]").forEach(x=>x.addEventListener("click",e=>{e.preventDefault();history.replaceState(null,"","#cod-penal");hubOpenPenal()}));
-document.getElementById("penalBack").addEventListener("click",e=>{e.preventDefault();history.replaceState(null,"",location.pathname);hubClosePenal()});
+
+
 document.getElementById("hubPenalSearch").addEventListener("input",hubPenalRender);
-if(location.hash==="#cod-penal")hubOpenPenal();
+
 
 
 
@@ -1325,11 +1325,11 @@ function hmRender(){const q=document.getElementById('memberSearch').value.toLowe
 async function hmLoad(){if(hubMembersLoaded)return;try{const r=await fetch('/api/hub/personnel',{credentials:'include'}),d=await r.json();if(!r.ok)throw new Error(d.error||'Eroare');HUB_MEMBERS=d;allCount.textContent=d.totals.all;pCount.textContent=d.totals.police;dCount.textContent=d.totals.diicot;const ranks=[...new Set([...d.police,...d.diicot].map(x=>x.rank))];memberRankFilter.innerHTML='<option value="">Toate gradele</option>'+ranks.map(x=>`<option>${hmEsc(x)}</option>`).join('');hubMembersLoaded=true;hmRender()}catch(e){memberBoard.innerHTML=`<div class="loading">Nu am putut încărca membrii: ${hmEsc(e.message)}</div>`}}
 function hmOpen(){document.body.classList.add('members-open');hmLoad();scrollTo({top:0,behavior:'smooth'})}
 function hmClose(){document.body.classList.remove('members-open');scrollTo({top:0,behavior:'smooth'})}
-document.querySelectorAll('[data-open-members]').forEach(x=>x.addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'','#membri');hmOpen()}));
-document.getElementById('backHome').addEventListener('click',e=>{e.preventDefault();history.replaceState(null,'',location.pathname);hmClose()});
+
+
 document.getElementById('memberSearch').addEventListener('input',hmRender);
 document.getElementById('memberRankFilter').addEventListener('change',hmRender);
-if(location.hash==='#membri')hmOpen();
+
 
 
 const agencies=document.querySelectorAll('.agency');
@@ -1348,62 +1348,88 @@ document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.qu
 document.getElementById('diicotNews').onclick=()=>location.href='https://diicotro.rushdiicot6.workers.dev/dashboard';
 (async()=>{try{const r=await fetch('/api/me',{credentials:'include'});if(r.ok){const u=await r.json();if(u&&!u.error)document.getElementById('auth').innerHTML=`<a class="account" href="/dashboard"><i class="online"></i><span>${esc(u.global_name||u.username||'Cont conectat')}</span></a>`}const nr=await fetch('/api/notifications',{credentials:'include'});if(nr.ok){const d=await nr.json();notices=d.notifications||[];renderNews() }else renderNews()}catch{renderNews()}})();
 
-/* ===== HUB MAI browser Back / Forward navigation ===== */
-(function hubHistoryNavigation(){
-  function showHomeFromHistory(){
+
+
+
+/* ===== HUB MAI ROUTER FINAL =====
+   Un singur router controlează Acasă / Membri / Cod Penal.
+   Păstrează săgeata Back în HUB și nu o lasă să cadă în /dashboard.
+*/
+(function(){
+  let routing = false;
+
+  function renderHubRoute(view){
+    routing = true;
     document.body.classList.remove("members-open","penal-open");
+
+    if(view === "members"){
+      document.body.classList.add("members-open");
+      hmLoad();
+    } else if(view === "penal"){
+      document.body.classList.add("penal-open");
+      hubPenalInit();
+    }
     window.scrollTo({top:0,behavior:"auto"});
+    setTimeout(()=>routing=false,0);
   }
-  function showStateFromLocation(){
-    if (location.hash === "#membri") {
-      document.body.classList.remove("penal-open");
-      hmOpen();
+
+  function routeFromHash(){
+    if(location.hash === "#membri") return "members";
+    if(location.hash === "#cod-penal") return "penal";
+    return "home";
+  }
+
+  // Indexul devine punctul de bază al HUB-ului.
+  // Guard-ul este pus peste pagina anterioară astfel încât Back să rămână aici.
+  const initialView = routeFromHash();
+  history.replaceState({hubMai:true,view:"home",guard:true},"",location.pathname);
+  history.pushState({hubMai:true,view:initialView},"",
+    initialView==="members" ? location.pathname+"#membri" :
+    initialView==="penal" ? location.pathname+"#cod-penal" :
+    location.pathname+"#hub"
+  );
+  renderHubRoute(initialView);
+
+  function go(view, replace=false){
+    const url = view==="members" ? location.pathname+"#membri" :
+                view==="penal" ? location.pathname+"#cod-penal" :
+                location.pathname+"#hub";
+    const state={hubMai:true,view};
+    if(replace) history.replaceState(state,"",url);
+    else history.pushState(state,"",url);
+    renderHubRoute(view);
+  }
+
+  document.querySelectorAll("[data-open-members]").forEach(el=>{
+    el.addEventListener("click",e=>{e.preventDefault();go("members");});
+  });
+  document.querySelectorAll("[data-open-penal]").forEach(el=>{
+    el.addEventListener("click",e=>{e.preventDefault();go("penal");});
+  });
+
+  const backHome=document.getElementById("backHome");
+  if(backHome) backHome.addEventListener("click",e=>{e.preventDefault();go("home");});
+  const penalBack=document.getElementById("penalBack");
+  if(penalBack) penalBack.addEventListener("click",e=>{e.preventDefault();go("home");});
+
+  addEventListener("popstate",e=>{
+    // Dacă browserul ajunge la guard, afișăm Acasă și refacem o stare HUB
+    // în fața lui. Astfel încă un Back nu ajunge accidental în dashboard.
+    if(e.state && e.state.hubMai && e.state.guard){
+      renderHubRoute("home");
+      history.pushState({hubMai:true,view:"home"},"",location.pathname+"#hub");
       return;
     }
-    if (location.hash === "#cod-penal") {
-      document.body.classList.remove("members-open");
-      hubOpenPenal();
+
+    if(e.state && e.state.hubMai){
+      renderHubRoute(e.state.view || "home");
       return;
     }
-    showHomeFromHistory();
-  }
 
-  // Ensure the current index page itself has a HUB state.
-  if (!history.state || !history.state.hubMai) {
-    history.replaceState({hubMai:true, view: location.hash || "home"}, "", location.href);
-  }
-
-  // Override only our HUB navigation links to PUSH a state, so browser Back
-  // goes Members/Cod Penal -> HUB home, not to the previous Police dashboard.
-  document.querySelectorAll("[data-open-members]").forEach(el => {
-    el.onclick = function(e){
-      e.preventDefault();
-      history.pushState({hubMai:true,view:"members"},"",location.pathname+"#membri");
-      hmOpen();
-    };
+    // Fallback: orice stare necunoscută este readusă în HUB.
+    history.pushState({hubMai:true,view:"home"},"",location.pathname+"#hub");
+    renderHubRoute("home");
   });
-  document.querySelectorAll("[data-open-penal]").forEach(el => {
-    el.onclick = function(e){
-      e.preventDefault();
-      history.pushState({hubMai:true,view:"penal"},"",location.pathname+"#cod-penal");
-      hubOpenPenal();
-    };
-  });
-
-  const bh=document.getElementById("backHome");
-  if(bh) bh.onclick=function(e){
-    e.preventDefault();
-    history.pushState({hubMai:true,view:"home"},"",location.pathname);
-    showHomeFromHistory();
-  };
-  const bp=document.getElementById("penalBack");
-  if(bp) bp.onclick=function(e){
-    e.preventDefault();
-    history.pushState({hubMai:true,view:"home"},"",location.pathname);
-    showHomeFromHistory();
-  };
-
-  addEventListener("popstate", showStateFromLocation);
 })();
 
 </script></body></html>
