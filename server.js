@@ -1,131 +1,5 @@
 const express = require("express");
-// Cloudflare Workers compatibility: all former Axios calls are routed through
-// native fetch. This avoids Request.cache="default", which Workers rejects.
-function headersToObject(headers) {
-    const out = {};
-    if (headers && typeof headers.forEach === "function") {
-        headers.forEach((value, key) => {
-            out[String(key).toLowerCase()] = value;
-        });
-    }
-    return out;
-}
-
-async function nativeHttpRequest(method, url, data, config = {}) {
-    const requestUrl = new URL(String(url));
-
-    if (config.params && typeof config.params === "object") {
-        for (const [key, value] of Object.entries(config.params)) {
-            if (value !== undefined && value !== null) {
-                requestUrl.searchParams.set(key, String(value));
-            }
-        }
-    }
-
-    const headers = new Headers(config.headers || {});
-    const options = {
-        method: String(method || "GET").toUpperCase(),
-        headers
-    };
-
-    if (options.method !== "GET" && options.method !== "HEAD" && data !== undefined && data !== null) {
-        if (data instanceof URLSearchParams) {
-            if (!headers.has("Content-Type")) {
-                headers.set("Content-Type", "application/x-www-form-urlencoded");
-            }
-            options.body = data.toString();
-        } else if (typeof data === "string" || data instanceof ArrayBuffer || ArrayBuffer.isView(data)) {
-            options.body = data;
-        } else {
-            if (!headers.has("Content-Type")) {
-                headers.set("Content-Type", "application/json");
-            }
-            options.body = JSON.stringify(data);
-        }
-    }
-
-    let timeoutId = null;
-    let controller = null;
-    if (Number(config.timeout) > 0) {
-        controller = new AbortController();
-        options.signal = controller.signal;
-        timeoutId = setTimeout(() => controller.abort(), Number(config.timeout));
-    }
-
-    try {
-        const response = await fetch(requestUrl.toString(), options);
-        const responseHeaders = headersToObject(response.headers);
-        const contentType = String(response.headers.get("content-type") || "").toLowerCase();
-        let responseData = null;
-
-        if (response.status !== 204 && response.status !== 205) {
-            const raw = await response.text();
-            if (raw) {
-                if (contentType.includes("application/json")) {
-                    try {
-                        responseData = JSON.parse(raw);
-                    } catch {
-                        responseData = raw;
-                    }
-                } else {
-                    try {
-                        responseData = JSON.parse(raw);
-                    } catch {
-                        responseData = raw;
-                    }
-                }
-            }
-        }
-
-        const result = {
-            data: responseData,
-            status: response.status,
-            statusText: response.statusText,
-            headers: responseHeaders
-        };
-
-        const accepted = typeof config.validateStatus === "function"
-            ? Boolean(config.validateStatus(response.status))
-            : response.status >= 200 && response.status < 300;
-
-        if (!accepted) {
-            const error = new Error(
-                `HTTP ${response.status}${responseData?.message ? `: ${responseData.message}` : ""}`
-            );
-            error.response = result;
-            throw error;
-        }
-
-        return result;
-    } catch (error) {
-        if (error?.name === "AbortError") {
-            const timeoutError = new Error(`Request timeout after ${Number(config.timeout)}ms`);
-            timeoutError.code = "ETIMEDOUT";
-            throw timeoutError;
-        }
-        throw error;
-    } finally {
-        if (timeoutId) clearTimeout(timeoutId);
-    }
-}
-
-const axios = {
-    get(url, config = {}) {
-        return nativeHttpRequest("GET", url, undefined, config);
-    },
-    delete(url, config = {}) {
-        return nativeHttpRequest("DELETE", url, undefined, config);
-    },
-    post(url, data, config = {}) {
-        return nativeHttpRequest("POST", url, data, config);
-    },
-    put(url, data, config = {}) {
-        return nativeHttpRequest("PUT", url, data, config);
-    },
-    patch(url, data, config = {}) {
-        return nativeHttpRequest("PATCH", url, data, config);
-    }
-};
+const axios = require("axios");
 const cookieSession = require("cookie-session");
 const path = require("path");
 // Workers do not provide the CommonJS __dirname global. Static assets live in public/.
@@ -158,17 +32,12 @@ const PORT = process.env.PORT || 3000;
 // ======================================================
 app.set("etag", "strong");
 
-// Cloudflare Workers handles HTTP compression at the edge.
-// Do not run Express/compression inside the Workers node:http bridge: it can
-// produce an encoded API body that the browser then tries to parse as JSON.
-if (process.env.CLOUDFLARE_WORKERS !== "1") {
-    app.use(
-        compression({
-            threshold: 1024,
-            level: 6
-        })
-    );
-}
+app.use(
+    compression({
+        threshold: 1024,
+        level: 6
+    })
+);
 
 
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
@@ -9092,6 +8961,84 @@ app.get(
         }
     }
 );
+
+
+
+// ======================================================
+// HUB MAI — PERSONAL COMBINAT POLITIE + DIICOT
+// Date reale din acelasi Discord, folosite de indexul HUB.
+// ======================================================
+const HUB_DIICOT_ROLES = [
+    { id: "1528758226420633746", name: "PROCUROR ȘEF", level: 13 },
+    { id: "1528758226420633745", name: "PROCUROR ȘEF ADJUNCT", level: 12 },
+    { id: "1528758226420633744", name: "PROCUROR", level: 11 },
+    { id: "1528758226416435219", name: "COORDONATOR", level: 10 },
+    { id: "1528758226416435217", name: "COMISAR ȘEF", level: 9 },
+    { id: "1528758226416435216", name: "COMISAR", level: 8 },
+    { id: "1528758226416435215", name: "SUB COMISAR", level: 7 },
+    { id: "1528758226416435214", name: "INSPECTOR PRINCIPAL", level: 6 },
+    { id: "1528758226416435213", name: "INSPECTOR", level: 5 },
+    { id: "1528758226416435211", name: "SUB INSPECTOR", level: 4 },
+    { id: "1528758226416435210", name: "AGENT PRINCIPAL", level: 3 },
+    { id: "1528758226407919645", name: "AGENT OPERATIV", level: 2 },
+    { id: "1528758226407919644", name: "AGENT STAGIAR", level: 1 }
+];
+
+function hubHighestRole(roles, defs) {
+    const set = new Set((roles || []).map(String));
+    return [...defs].sort((a,b) => b.level-a.level).find(r => set.has(String(r.id))) || null;
+}
+function hubCallsign(nick, department) {
+    const s = String(nick || "");
+    const d = s.match(/\bD[\s\-_]?0*(\d{1,3})\b/i);
+    if (department === "DIICOT" && d) return `D-${String(Number(d[1])).padStart(3,"0")}`;
+    const b = s.match(/\[(?:D[\s\-_]?)?0*(\d{1,3})\]|\b(?:ID[\s\-_]?)?0*(\d{3})\b/i);
+    if (b) {
+        const n = b[1] || b[2];
+        return department === "DIICOT" ? `D-${String(Number(n)).padStart(3,"0")}` : String(Number(n)).padStart(3,"0");
+    }
+    return "";
+}
+
+app.get("/api/hub/personnel", requireAuth, async (req, res) => {
+    try {
+        const members = await fetchAllGuildMembersForPersonnel();
+        const police = [];
+        const diicot = [];
+
+        for (const member of members || []) {
+            const user = member?.user || {};
+            if (!user.id || user.bot) continue;
+            const roles = Array.isArray(member.roles) ? member.roles.map(String) : [];
+            const common = {
+                id: String(user.id),
+                username: user.username || "Necunoscut",
+                displayName: member.nick || user.global_name || user.username || "Necunoscut",
+                avatar: discordMemberAvatar(user)
+            };
+
+            const pr = hubHighestRole(roles, DIICOT_ROLES);
+            if (pr) police.push({
+                ...common, department: "POLITIE", rank: pr.name, rankLevel: Number(pr.level || 0),
+                callsign: hubCallsign(member.nick || common.displayName, "POLITIE")
+            });
+
+            const dr = hubHighestRole(roles, HUB_DIICOT_ROLES);
+            if (dr) diicot.push({
+                ...common, department: "DIICOT", rank: dr.name, rankLevel: Number(dr.level || 0),
+                callsign: hubCallsign(member.nick || common.displayName, "DIICOT")
+            });
+        }
+
+        const sorter = (a,b) => (b.rankLevel-a.rankLevel) || a.displayName.localeCompare(b.displayName, "ro");
+        police.sort(sorter); diicot.sort(sorter);
+        res.set("Cache-Control", "private, max-age=30");
+        return res.json({ success:true, totals:{police:police.length,diicot:diicot.length,all:police.length+diicot.length}, police, diicot });
+    } catch (error) {
+        console.error("HUB personnel error:", error?.response?.data || error?.message || error);
+        return res.status(500).json({error:"Membrii MAI nu au putut fi încărcați."});
+    }
+});
 
 
 // ======================================================
