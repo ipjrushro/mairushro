@@ -3345,60 +3345,62 @@ app.get(
                         REDIRECT_URI
                 });
 
-            const tokenResponse =
-                await axios.post(
+            // Cloudflare Workers: folosim fetch nativ pentru OAuth Discord.
+            // Axios poate seta Request.cache="default", mod nesuportat de Workers.
+            const tokenResponse = await fetch(
+                "https://discord.com/api/oauth2/token",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: params.toString()
+                }
+            );
 
-                    "https://discord.com/api/oauth2/token",
+            if (!tokenResponse.ok) {
+                const details = await tokenResponse.text();
+                throw new Error(`Discord token exchange failed (${tokenResponse.status}): ${details}`);
+            }
 
-                    params.toString(),
+            const tokenData = await tokenResponse.json();
+            const accessToken = tokenData.access_token;
 
-                    {
-                        headers: {
+            if (!accessToken) {
+                throw new Error("Discord token exchange did not return an access token");
+            }
 
-                            "Content-Type":
-                                "application/x-www-form-urlencoded"
-                        }
+            const userResponse = await fetch(
+                "https://discord.com/api/users/@me",
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`
                     }
-                );
+                }
+            );
 
-            const accessToken =
-                tokenResponse
-                    .data
-                    .access_token;
+            if (!userResponse.ok) {
+                const details = await userResponse.text();
+                throw new Error(`Discord user request failed (${userResponse.status}): ${details}`);
+            }
 
-            const userResponse =
-                await axios.get(
+            const discordUser = await userResponse.json();
 
-                    "https://discord.com/api/users/@me",
-
-                    {
-                        headers: {
-
-                            Authorization:
-                                `Bearer ${accessToken}`
-                        }
+            const memberResponse = await fetch(
+                `https://discord.com/api/users/@me/guilds/${GUILD_ID}/member`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`
                     }
-                );
+                }
+            );
 
-            const discordUser =
-                userResponse.data;
+            if (!memberResponse.ok) {
+                const details = await memberResponse.text();
+                throw new Error(`Discord guild member request failed (${memberResponse.status}): ${details}`);
+            }
 
-            const memberResponse =
-                await axios.get(
-
-                    `https://discord.com/api/users/@me/guilds/${GUILD_ID}/member`,
-
-                    {
-                        headers: {
-
-                            Authorization:
-                                `Bearer ${accessToken}`
-                        }
-                    }
-                );
-
-            const member =
-                memberResponse.data;
+            const member = await memberResponse.json();
 
             const roles =
                 Array.isArray(
