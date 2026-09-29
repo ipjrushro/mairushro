@@ -8915,11 +8915,11 @@ function hubHighestRole(roles, defs) {
 function hubCallsign(nick, department) {
     const s = String(nick || "");
     const d = s.match(/\bD[\s\-_]?0*(\d{1,3})\b/i);
-    if (department === "DIICOT" && d) return `D-${String(Number(d[1])).padStart(3,"0")}`;
+    if (department === "DIICOT" && d) return `D-${String(Number(d[1])).padStart(2,"0")}`;
     const b = s.match(/\[(?:D[\s\-_]?)?0*(\d{1,3})\]|\b(?:ID[\s\-_]?)?0*(\d{3})\b/i);
     if (b) {
         const n = b[1] || b[2];
-        return department === "DIICOT" ? `D-${String(Number(n)).padStart(3,"0")}` : String(Number(n)).padStart(3,"0");
+        return department === "DIICOT" ? `D-${String(Number(n)).padStart(2,"0")}` : String(Number(n)).padStart(3,"0");
     }
     return "";
 }
