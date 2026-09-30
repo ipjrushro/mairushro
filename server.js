@@ -1,5 +1,44 @@
 const express = require("express");
-const axios = require("axios");
+// Discord HTTP helper. We intentionally avoid Axios inside Cloudflare Workers:
+// Axios can generate Request.cache="default", which Workers rejects with
+// "Unsupported cache mode: default". This small compatibility wrapper keeps
+// the existing axios.get/post/put/patch/delete call sites working via fetch().
+function createHttpError(message, status, data) {
+    const error = new Error(message);
+    error.response = { status, data };
+    return error;
+}
+async function httpRequest(method, url, data, config = {}) {
+    const headers = { ...(config.headers || {}) };
+    const init = { method, headers };
+    if (data !== undefined && data !== null && method !== "GET" && method !== "HEAD") {
+        if (typeof data === "string" || data instanceof Uint8Array || data instanceof ArrayBuffer) {
+            init.body = data;
+        } else {
+            if (!Object.keys(headers).some(k => k.toLowerCase() === "content-type")) {
+                headers["Content-Type"] = "application/json";
+            }
+            init.body = JSON.stringify(data);
+        }
+    }
+    const response = await fetch(url, init);
+    const text = await response.text();
+    let parsed = null;
+    if (text) {
+        try { parsed = JSON.parse(text); } catch { parsed = text; }
+    }
+    if (!response.ok) {
+        throw createHttpError(`HTTP ${response.status}`, response.status, parsed);
+    }
+    return { data: parsed, status: response.status, headers: response.headers };
+}
+const axios = {
+    get: (url, config = {}) => httpRequest("GET", url, null, config),
+    post: (url, data, config = {}) => httpRequest("POST", url, data, config),
+    put: (url, data, config = {}) => httpRequest("PUT", url, data, config),
+    patch: (url, data, config = {}) => httpRequest("PATCH", url, data, config),
+    delete: (url, config = {}) => httpRequest("DELETE", url, null, config)
+};
 const cookieSession = require("cookie-session");
 const path = require("path");
 // Workers do not provide the CommonJS __dirname global. Static assets live in public/.
@@ -97,6 +136,9 @@ const B2_DIRECT_UPLOAD_ORIGIN =
     process.env.B2_DIRECT_UPLOAD_ORIGIN ||
     "https://example.invalid";
 
+let b2CorsReady = false;
+let b2CorsPromise = null;
+
 async function configureB2CorsForDirectUpload() {
     if (
         !B2_BUCKET ||
@@ -130,6 +172,7 @@ async function configureB2CorsForDirectUpload() {
             })
         );
 
+        b2CorsReady = true;
         console.log(
             `[BACKBLAZE B2 CORS] OK pentru ${B2_DIRECT_UPLOAD_ORIGIN}`
         );
@@ -139,6 +182,14 @@ async function configureB2CorsForDirectUpload() {
             error?.name || error?.message || error
         );
     }
+}
+
+async function ensureB2DirectUploadCors() {
+    if (b2CorsReady) return;
+    if (!b2CorsPromise) {
+        b2CorsPromise = configureB2CorsForDirectUpload().finally(() => { b2CorsPromise = null; });
+    }
+    await b2CorsPromise;
 }
 
 const POLICE_ANNOUNCEMENT_CHANNELS = Object.freeze({
@@ -3052,7 +3103,7 @@ function requireTester(
             .status(403)
             .json({
                 error:
-                    "Doar Tester DIICOT sau Conducerea poate accesa testele."
+                    "Doar Tester sau Conducerea Poliției poate accesa testele."
             });
     }
 
@@ -4253,6 +4304,15 @@ app.post(
             return;
         }
 
+        // Workers do not execute the Node startup callback, so configure the
+        // bucket CORS lazily before the browser receives direct PUT URLs.
+        try {
+            await ensureB2DirectUploadCors();
+        } catch (corsError) {
+            console.error("B2 direct upload CORS error:", corsError?.message || corsError);
+            return res.status(502).json({ error: "Uploadul direct B2 nu a putut fi configurat (CORS)." });
+        }
+
         const files = Array.isArray(req.body?.files) ? req.body.files : [];
 
         if (files.length > DIRECT_UPLOAD_MAX_FILES) {
@@ -4514,12 +4574,12 @@ async function sendOperationalReportToDiscord(report) {
             },
             {
                 name: "ORGANIZATOR 1",
-                value: `${authorMention}\n${report.authorRank || "Membru DIICOT"}`,
+                value: `${authorMention}\n${report.authorRank || "Membru Poliție"}`,
                 inline: false
             },
             { name: "ORGANIZATOR 2", value: secondOrganizer, inline: false }
         ],
-        footer: { text: "DIICOT • Centru de Comandă • Rush România" },
+        footer: { text: "Poliția Română • Centru de Comandă • Rush România" },
         timestamp: report.createdAt || new Date().toISOString()
     };
 
@@ -4833,7 +4893,7 @@ app.post(
         ) {
             return res.status(403).json({
                 error:
-                    "RAZIE și ANTRENAMENT pot fi postate doar de la SUB INSPECTOR DIICOT în sus. Pentru participare folosește DOVADĂ RAZIE / DOVADĂ ANTRENAMENT."
+                    "RAZIE și ANTRENAMENT pot fi postate doar de la SUB INSPECTOR în sus. Pentru participare folosește DOVADĂ RAZIE / DOVADĂ ANTRENAMENT."
             });
         }
         if (
@@ -7278,7 +7338,7 @@ async function sendBlacklistCreateMessage(entry = {}) {
             0xED4245,
 
         description:
-            "O persoană a fost adăugată în blacklist-ul DIICOT.",
+            "O persoană a fost adăugată în blacklist-ul Poliției.",
 
         fields: [
             {
@@ -7360,7 +7420,7 @@ async function sendBlacklistCreateMessage(entry = {}) {
 
         footer: {
             text:
-                "DIICOT • Centru de Comandă • Rush România"
+                "Poliția Română • Centru de Comandă • Rush România"
         },
 
         timestamp:
@@ -11588,7 +11648,7 @@ app.post(
                     candidates.find(r => String(r.discord_id || "") === discordId) ||
                     candidates.find(r => !String(r.discord_id || "").trim());
                 if (!target) continue;
-                const old = (rows || []).find(r => String(r.discord_id || "") === discordId && r.id !== target.id);
+                const old = (rows || []).find(r => isPoliceDocsRow(r) && String(r.discord_id || "") === discordId && r.id !== target.id);
 
                 // Dacă omul și-a schimbat callsign-ul pe Discord, eliberăm vechiul slot, dar păstrăm callsign-ul/rândul.
                 let source = target;
@@ -11635,7 +11695,7 @@ app.post(
             return res.json({ success: true, created: missing.length, assigned, moved, cleared, totalSlots: validNumbers.length + 1 });
         } catch (error) {
             console.error("DOCS Sync Error:", error.response?.data || error.message || error);
-            return res.status(500).json({ error: "Personalul DOCS Poliție nu a putut fi sincronizat." });
+            return res.status(500).json({ error: `Personalul DOCS Poliție nu a putut fi sincronizat: ${error?.message || "eroare necunoscută"}` });
         }
     }
 );
@@ -12525,7 +12585,7 @@ app.patch(
             try {
                 await sendDiscordDM(
                     targetId,
-                    `📟 CERERE CALLSIGN APROBATĂ\n\nAi primit callsign-ul **${callsign}**.\nAi la dispoziție **24 de ore** să îl folosești și să respecți formatul stabilit de conducerea DIICOT. Dacă nu respecți această obligație în termenul de 24 de ore, poți primi sancțiune conform regulamentului intern.\n\nAcordat de: **${req.session.user.displayName || req.session.user.username}**`
+                    `📟 CERERE CALLSIGN APROBATĂ\n\nAi primit callsign-ul **${callsign}**.\nAi la dispoziție **24 de ore** să îl folosești și să respecți formatul stabilit de conducerea Poliției. Dacă nu respecți această obligație în termenul de 24 de ore, poți primi sancțiune conform regulamentului intern.\n\nAcordat de: **${req.session.user.displayName || req.session.user.username}**`
                 );
             }
             catch (dmError) {
@@ -12551,7 +12611,7 @@ app.patch(
             );
 
             return res.status(500).json({
-                error: "Callsign-ul nu a putut fi acordat."
+                error: `Callsign-ul nu a putut fi acordat: ${error?.response?.data?.message || error?.message || "eroare necunoscută"}`
             });
         }
     }
@@ -13743,12 +13803,13 @@ app.get(
                 supabase
                     .from("test_settings")
                     .select("*")
-                    .eq("department", "DIICOT")
+                    .eq("department", "POLITIE")
                     .maybeSingle(),
 
                 supabase
                     .from("test_history")
                     .select("*")
+                    .eq("department", "POLITIE")
                     .order("created_at", { ascending: false })
                     .limit(500)
             ]);
@@ -14344,7 +14405,7 @@ app.patch(
                 .from("test_settings")
                 .upsert({
                     department:
-                        "DIICOT",
+                        "POLITIE",
                     rejection_threshold:
                         rejectionThreshold,
                     admitted_role_ids:
@@ -14465,7 +14526,7 @@ app.post(
                     )
                     .eq(
                         "department",
-                        "DIICOT"
+                        "POLITIE"
                     )
                     .maybeSingle();
 
@@ -14673,7 +14734,7 @@ app.post(
                             crypto.randomUUID(),
 
                         department:
-                            "DIICOT",
+                            "POLITIE",
 
                         candidate_name:
                             candidateName,
@@ -14789,7 +14850,7 @@ app.post(
                 .status(500)
                 .json({
                     error:
-                        "Testul nu a putut fi finalizat."
+                        `Testul nu a putut fi finalizat: ${error?.response?.data?.message || error?.message || "eroare necunoscută"}`
                 });
         }
     }
