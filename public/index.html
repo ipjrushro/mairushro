@@ -320,6 +320,27 @@ header{
 @media(max-width:650px){.appsReviewDeptSwitch{flex-direction:column}.appsReviewDeptBtn{min-width:0;width:100%}}
 </style>
 
+
+<style id="heroBackgroundVisibilityFix">
+/* FIX: fundalurile Poliție / DIICOT rămân vizibile sub overlay */
+.hero .agencyBg{
+  opacity:1!important;
+  background-size:cover!important;
+  background-repeat:no-repeat!important;
+  background-position:center!important;
+  filter:saturate(1.05) contrast(1.06) brightness(.78)!important;
+}
+.hero .police .agencyBg{background-image:url('/uploads/politie-rush-romania.webp')!important}
+.hero .diicot .agencyBg{background-image:url('/uploads/diicot-rush-romania.webp')!important}
+.hero .police .shade{
+  background:linear-gradient(90deg,rgba(2,7,16,.74) 0%,rgba(3,15,34,.38) 55%,rgba(2,8,18,.52) 100%),radial-gradient(circle at 72% 42%,rgba(25,126,255,.18),transparent 45%)!important;
+}
+.hero .diicot .shade{
+  background:linear-gradient(270deg,rgba(7,5,1,.74) 0%,rgba(25,17,3,.38) 55%,rgba(9,6,2,.52) 100%),radial-gradient(circle at 28% 42%,rgba(235,169,10,.16),transparent 45%)!important;
+}
+.hero .agency:before{background:linear-gradient(180deg,rgba(255,255,255,.015),rgba(0,0,0,.04))!important}
+.hero .heroInner{background:linear-gradient(145deg,rgba(7,16,29,.54),rgba(7,13,23,.24))!important;backdrop-filter:blur(3px)!important}
+</style>
 </head>
 <body><div class="nxAurora"></div><div class="nxScan"></div><div class="nxCursor" id="nxCursor"></div><canvas id="fx"></canvas><div class="noise"></div>
 <header><div class="nav"><a class="brand" href="/"><span class="brandLogo"><img src="/uploads/politia-romana-logo.png"></span><span><b>HUB MAI</b><small>RUSH ROMÂNIA · CENTRU OPERAȚIONAL</small></span></a><div id="auth"><a class="account" href="/auth/discord"><i class="online" style="background:#7289da;box-shadow:0 0 12px #7289da"></i><span>AUTENTIFICARE DISCORD</span></a></div></div></header>
@@ -1857,4 +1878,19 @@ window.hubAppDecision=async(id,decision)=>{
 </style>
 <script id="appsPremiumFx">document.addEventListener('mousemove',e=>{const p=document.querySelector('#applicationsView .appsPanel');if(!p)return;const r=p.getBoundingClientRect();p.style.setProperty('--apx',(e.clientX-r.left)+'px');p.style.setProperty('--apy',(e.clientY-r.top)+'px')});</script>
 
+<script>
+/* Dacă imaginile RUSH nu există pe Worker, folosește automat imaginile deja existente din /uploads. */
+(function(){
+ const defs=[
+  ['.hero .police .agencyBg','/uploads/politie-rush-romania.webp','/uploads/card-personal-hd.jpg'],
+  ['.hero .diicot .agencyBg','/uploads/diicot-rush-romania.webp','/uploads/card-cod-penal-hd.jpg']
+ ];
+ defs.forEach(([sel,main,fallback])=>{
+   const img=new Image();
+   img.onload=()=>{};
+   img.onerror=()=>{const el=document.querySelector(sel);if(el)el.style.setProperty('background-image',`url("${fallback}")`,'important')};
+   img.src=main+'?v=2';
+ });
+})();
+</script>
 </body></html>
