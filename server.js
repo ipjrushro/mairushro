@@ -3627,11 +3627,18 @@ app.get(
                 "1528758226407919637"
             );
 
-        const policeRank =
-            req.session.user.rank &&
-            req.session.user.rank !== "CIVIL"
-                ? req.session.user.rank
-                : "";
+        // HUB MAI: detectăm separat gradul din Poliție și gradul din DIICOT.
+        // DIICOT_ROLES este lista Poliției (nume istoric păstrat pentru compatibilitate).
+        const policeMatch = hubHighestRole(roles, DIICOT_ROLES);
+        const diicotMatch = hubHighestRole(roles, HUB_DIICOT_ROLES);
+        const policeRank = policeMatch ? policeMatch.name : "";
+        const diicotRank = diicotMatch ? diicotMatch.name : "";
+
+        // `rank` rămâne pentru compatibilitate cu dashboard-ul Poliției.
+        // Identitatea HUB folosește separat policeRank / diicotRank.
+        req.session.user.rank = policeRank || "CIVIL";
+        req.session.user.rankLevel = policeMatch ? Number(policeMatch.level || 0) : 0;
+        req.session.user.rankRoleId = policeMatch ? policeMatch.id : null;
 
         res.json({
             loggedIn: true,
@@ -3649,11 +3656,17 @@ app.get(
             police: !!policeRank,
             isPolice: !!policeRank,
             policeRank,
+            diicot: !!diicotRank,
+            isDiicot: !!diicotRank,
+            diicotRank,
+            department: policeRank && diicotRank ? "BOTH" : policeRank ? "POLITIE" : diicotRank ? "DIICOT" : "CIVIL",
             departments: {
-                police: policeRank ? { active: true, rank: policeRank } : false
+                police: policeRank ? { active: true, rank: policeRank } : false,
+                diicot: diicotRank ? { active: true, rank: diicotRank } : false
             },
             access: {
-                police: !!policeRank
+                police: !!policeRank,
+                diicot: !!diicotRank
             },
 
             user: req.session.user,
