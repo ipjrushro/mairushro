@@ -351,7 +351,7 @@ header{
 <div class="eyebrow">Structură operativă · Poliția Română</div><img class="heroLogo" src="/uploads/politia-romana-logo.png"><h1 class="title">POLIȚIA <span>ROMÂNĂ</span></h1><div class="accent"></div><p class="desc">Centrul de comandă pentru personal, rapoarte, activități, documente, sancțiuni și administrarea structurii.</p><a class="cta" id="enterPolice" href="/dashboard">Intră pe site Poliție <b>→</b></a><a class="cta applyCta" href="#aplica-politie" data-apply="POLITIE">Aplică în Poliție <b>＋</b></a>
 </div></article>
 <article class="agency diicot"><div class="agencyBg"></div><div class="shade"></div><div class="spot"></div><div class="heroInner">
-<div class="eyebrow">Structură specializată · DIICOT</div><img class="heroLogo" src="/uploads/diicot-logo.png"><h1 class="title">DIICOT</h1><div class="accent"></div><p class="desc">Centrul de comandă pentru personal, rapoarte, razii, antrenamente, documente și administrarea structurii.</p><a class="cta" id="enterDiicot" href="https://diicotro.rushdiicot6.workers.dev/dashboard">Intră pe site DIICOT <b>→</b></a><a class="cta applyCta" href="#aplica-diicot" data-apply="DIICOT">Aplică în DIICOT <b>＋</b></a>
+<div class="eyebrow">Structură specializată · DIICOT</div><img class="heroLogo" src="/uploads/diicot-logo.png"><h1 class="title">DIICOT</h1><div class="accent"></div><p class="desc">Centrul de comandă pentru personal, rapoarte, razii, antrenamente, documente și administrarea structurii.</p><a class="cta" id="enterDiicot" href="https://diicotro.rushdiicot6.workers.dev/auth/discord">Intră pe site DIICOT <b>→</b></a><a class="cta applyCta" href="#aplica-diicot" data-apply="DIICOT">Aplică în DIICOT <b>＋</b></a>
 </div></article><div class="split"></div><div class="hubCore" id="hubCore">HUB<br>MAI</div>
 </section>
 
@@ -1643,7 +1643,7 @@ let notices=[];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 function renderNews(filter='ALL'){let arr=notices.filter(n=>n.type==='ANNOUNCEMENT');if(filter==='MAI')arr=arr.filter(n=>/mai|comun|general/i.test((n.title||'')+' '+(n.message||'')));if(filter==='POLITIE')arr=arr.filter(n=>!/diicot/i.test((n.title||'')+' '+(n.message||'')));const box=document.getElementById('newsGrid');if(!arr.length){box.innerHTML='<div class="empty"><div><b>Niciun anunț disponibil</b><span>Nu există anunțuri pentru filtrul selectat.</span></div></div>';return}box.innerHTML=arr.slice(0,6).map(n=>`<article class="notice"><span class="noticeTag">ANUNȚ OFICIAL</span><h3>${esc(n.title)}</h3><p>${esc(n.message)}</p><time>${n.createdAt?new Date(n.createdAt).toLocaleString('ro-RO'):''}</time></article>`).join('')}
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderNews(b.dataset.filter)});
-document.getElementById('diicotNews').onclick=()=>location.href='https://diicotro.rushdiicot6.workers.dev/dashboard';
+document.getElementById('diicotNews').onclick=()=>location.href='https://diicotro.rushdiicot6.workers.dev/auth/discord';
 (async()=>{try{const r=await fetch('/api/me',{credentials:'include'});if(r.ok){const u=await r.json();if(u&&!u.error){const nm=esc(u.global_name||u.username||'Cont conectat');const av=u.avatar&&u.id?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=128`:'';document.getElementById('auth').innerHTML=`<div class="hubUser"><button class="hubUserBtn" id="hubUserBtn">${av?`<img src="${av}" alt="">`:'<span class="hubAvatarFallback">MAI</span>'}<span class="hubUserText"><b>${nm}</b><small>CONT CONECTAT · ONLINE</small></span><span class="hubChevron">⌄</span></button><div class="hubUserMenu" id="hubUserMenu"><div class="hubUserMenuTop"><b>${nm}</b><span>Sesiune Discord activă</span></div><a href="/dashboard">Deschide dashboard Poliție</a><button id="hubLogout">Deconectare</button></div></div>`;setTimeout(()=>{const b=document.getElementById('hubUserBtn'),m=document.getElementById('hubUserMenu'),lo=document.getElementById('hubLogout');if(b)b.onclick=e=>{e.stopPropagation();m.classList.toggle('show')};document.addEventListener('click',()=>m&&m.classList.remove('show'));if(lo)lo.onclick=async()=>{lo.disabled=true;lo.textContent='Se deconectează...';try{let x=await fetch('/api/logout',{method:'POST',credentials:'include'});if(!x.ok)location.href='/logout';else location.href='/';}catch{location.href='/logout'}}},0)}}const nr=await fetch('/api/notifications',{credentials:'include'});if(nr.ok){const d=await nr.json();notices=d.notifications||[];renderNews() }else renderNews()}catch{renderNews()}})();
 
 
@@ -1898,7 +1898,7 @@ window.hubAppDecision=async(id,decision)=>{
 /* HUB access: autentificare Discord + acces doar la departamentul din care face parte contul. */
 (() => {
   const POLICE_URL = '/dashboard';
-  const DIICOT_URL = 'https://diicotro.rushdiicot6.workers.dev/dashboard';
+  const DIICOT_URL = 'https://diicotro.rushdiicot6.workers.dev/auth/discord';
   let access = { loggedIn:false, police:false, diicot:false, policeRank:'', diicotRank:'' };
 
   const norm = v => String(v ?? '').trim().toLowerCase();
