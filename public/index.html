@@ -1656,8 +1656,8 @@ document.getElementById('diicotNews').onclick=()=>location.href='https://diicotr
         const uid=u.id||payload.id||'';
         const avatar=u.avatar||payload.avatar||'';
         const av=avatar&&uid?`https://cdn.discordapp.com/avatars/${uid}/${avatar}.png?size=128`:'';
-        const policeRank=String(payload.policeRank||'').trim();
-        const diicotRank=String(payload.diicotRank||'').trim();
+        const policeRank=String(payload.policeRank||payload.departments?.police?.rank||window.hubPoliceRankFromPayload?.(payload)||'').trim();
+        const diicotRank=String(payload.diicotRank||payload.departments?.diicot?.rank||'').trim();
         const isCivil=!policeRank&&!diicotRank;
         const identity=isCivil?'CIVIL · CONT CONECTAT':policeRank&&diicotRank?`${esc(policeRank)} · POLIȚIE / ${esc(diicotRank)} · DIICOT`:policeRank?`${esc(policeRank)} · POLIȚIA ROMÂNĂ`:`${esc(diicotRank)} · DIICOT`;
         const menuIdentity=isCivil?'CIVIL · poate aplica în structurile MAI':identity;
@@ -1923,6 +1923,39 @@ window.hubAppDecision=async(id,decision)=>{
 })();
 </script>
 
+<script id="hubPoliceRankResolver">
+/* HUB MAI — fallback local pentru gradele Poliției.
+   Nu schimbă login-ul, DIICOT sau dashboard-urile; doar recunoaște gradul
+   Poliției direct din rolurile Discord deja returnate de /api/me. */
+window.HUB_POLICE_ROLES = [
+  {id:"1528758226437275791",name:"RESPONSABIL GUVERNAMENTALE",level:15},
+  {id:"1528758226437275788",name:"CHESTOR GENERAL",level:14},
+  {id:"1528758226437275787",name:"CHESTOR PRINCIPAL",level:13},
+  {id:"1528758226437275786",name:"CHESTOR SECUNDAR",level:12},
+  {id:"1528758226428891368",name:"COMISAR ȘEF",level:11},
+  {id:"1528758226428891366",name:"COMISAR",level:10},
+  {id:"1528758226428891365",name:"SUB COMISAR",level:9},
+  {id:"1528758226428891364",name:"INSPECTOR PRINCIPAL",level:8},
+  {id:"1528758226428891363",name:"INSPECTOR",level:7},
+  {id:"1528758226428891362",name:"SUB INSPECTOR",level:6},
+  {id:"1528758226428891361",name:"AGENT ȘEF PRINCIPAL",level:5},
+  {id:"1528758226428891360",name:"AGENT ȘEF ADJUNCT",level:4},
+  {id:"1528758226428891359",name:"AGENT PRINCIPAL",level:3},
+  {id:"1528758226420633752",name:"AGENT",level:2},
+  {id:"1528758226420633750",name:"CADET",level:1}
+];
+window.hubPoliceRankFromPayload = function(payload){
+  const user = payload?.user || {};
+  const roles = Array.isArray(payload?.roles) ? payload.roles :
+                Array.isArray(user?.roles) ? user.roles : [];
+  const set = new Set(roles.map(String));
+  const match = [...window.HUB_POLICE_ROLES]
+    .sort((a,b)=>b.level-a.level)
+    .find(r=>set.has(String(r.id)));
+  return match ? match.name : "";
+};
+</script>
+
 <script id="hubDepartmentAccessV2">
 /* HUB: login central. CIVIL se poate conecta/aplica; dashboard-urile cer apartenența la structură. */
 (() => {
@@ -1951,11 +1984,12 @@ window.hubAppDecision=async(id,decision)=>{
 
       access.police=!!(payload.police||payload.isPolice||payload.departments?.police?.active||payload.access?.police);
       access.diicot=!!(payload.diicot||payload.isDiicot||payload.departments?.diicot?.active||payload.access?.diicot);
-      access.policeRank=payload.policeRank||payload.departments?.police?.rank||'';
+      access.policeRank=payload.policeRank||payload.departments?.police?.rank||window.hubPoliceRankFromPayload?.(payload)||'';
       access.diicotRank=payload.diicotRank||payload.departments?.diicot?.rank||'';
+      if(access.policeRank) access.police=true;
 
-      // Fallback doar dacă /api/me provine temporar dintr-un deploy mai vechi.
-      if(!access.police&&!access.diicot){
+      // Fallback separat pentru fiecare structură dacă /api/me provine temporar dintr-un deploy mai vechi.
+      if(!access.police||!access.diicot){
         try{
           const pr=await fetch('/api/hub/personnel',{credentials:'include',cache:'no-store'});
           if(pr.ok){
