@@ -3482,8 +3482,8 @@ app.get(
             // După autentificarea Discord intrăm direct
             // în Centrul de Comandă.
             res.redirect(
-                "/dashboard"
-            );
+    "/"
+);
 
         }
 
