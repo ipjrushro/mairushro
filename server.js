@@ -3375,6 +3375,13 @@ app.get(
 
             const discordUser = await userResponse.json();
 
+            // Apartenența la serverul MAI NU mai este obligatorie pentru login.
+            // Orice cont Discord se poate autentifica în HUB pentru aplicații.
+            // Dacă utilizatorul este membru MAI, îi citim rolurile și gradul.
+            let member = null;
+            let roles = [];
+            let isGuildMember = false;
+
             const memberResponse = await fetch(
                 `https://discord.com/api/users/@me/guilds/${GUILD_ID}/member`,
                 {
@@ -3384,22 +3391,19 @@ app.get(
                 }
             );
 
-            if (!memberResponse.ok) {
-                const details = await memberResponse.text();
-                throw new Error(`Discord guild member request failed (${memberResponse.status}): ${details}`);
-            }
-
-            const member = await memberResponse.json();
-
-            const roles =
-                Array.isArray(
-                    member.roles
-                )
-
-                    ? member.roles
-                        .map(String)
-
+            if (memberResponse.ok) {
+                member = await memberResponse.json();
+                isGuildMember = true;
+                roles = Array.isArray(member?.roles)
+                    ? member.roles.map(String)
                     : [];
+            } else if (memberResponse.status !== 404) {
+                // 404 = utilizatorul nu este pe serverul MAI; login-ul rămâne valid.
+                const details = await memberResponse.text();
+                console.warn(
+                    `[Discord OAuth] Guild member lookup ${memberResponse.status}: ${details}`
+                );
+            }
 
             const rank =
                 getHighestDIICOTRole(
@@ -3451,7 +3455,7 @@ app.get(
 
                 displayName:
                     savedProfile?.display_name ||
-                    member.nick ||
+                    member?.nick ||
                     discordUser.global_name ||
                     discordUser.username,
 
@@ -3463,7 +3467,7 @@ app.get(
                 rank:
                     rank
                         ? rank.name
-                        : "MEMBRU POLIȚIE",
+                        : "CIVIL",
 
                 rankLevel:
                     rank
@@ -3476,7 +3480,9 @@ app.get(
                         : null,
 
                 guildId:
-                    GUILD_ID
+                    GUILD_ID,
+
+                isGuildMember
             };
 
             // După autentificarea Discord intrăm direct
@@ -3563,7 +3569,7 @@ app.get(
                 req.session.user.rank =
                     rank
                         ? rank.name
-                        : "MEMBRU POLIȚIE";
+                        : "CIVIL";
 
                 req.session.user.rankLevel =
                     rank
@@ -3621,23 +3627,41 @@ app.get(
                 "1528758226407919637"
             );
 
-        res.json({
-            loggedIn:
-                true,
+        const policeRank =
+            req.session.user.rank &&
+            req.session.user.rank !== "CIVIL"
+                ? req.session.user.rank
+                : "";
 
-            user:
-                req.session.user,
+        res.json({
+            loggedIn: true,
+
+            // Date plate pentru HUB (plus obiectul user pentru compatibilitate).
+            id: req.session.user.id,
+            username: req.session.user.username,
+            global_name: req.session.user.globalName || req.session.user.displayName || req.session.user.username,
+            displayName: req.session.user.displayName || req.session.user.globalName || req.session.user.username,
+            avatar: req.session.user.avatar,
+            roles,
+            rank: req.session.user.rank || "CIVIL",
+            isGuildMember: !!req.session.user.isGuildMember,
+
+            police: !!policeRank,
+            isPolice: !!policeRank,
+            policeRank,
+            departments: {
+                police: policeRank ? { active: true, rank: policeRank } : false
+            },
+            access: {
+                police: !!policeRank
+            },
+
+            user: req.session.user,
 
             permissions: {
-                admin:
-                    isAdmin,
-
-                tester:
-                    isTester,
-
-                testManagement:
-                    isAdmin ||
-                    isTester
+                admin: isAdmin,
+                tester: isTester,
+                testManagement: isAdmin || isTester
             }
         });
     }
