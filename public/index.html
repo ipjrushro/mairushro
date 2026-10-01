@@ -1704,7 +1704,10 @@ document.getElementById('diicotNews').onclick=()=>location.href='https://diicotr
 
   function renderHubRoute(view){
     routing = true;
-    document.body.classList.remove("members-open","penal-open","resp-open","reg-open");
+    document.body.classList.remove("members-open","penal-open","resp-open","reg-open","apps-open");
+    const complaintsHub = document.getElementById("complaintsHub");
+    if (complaintsHub) complaintsHub.classList.add("hidden");
+    document.body.style.overflow = "";
 
     if(view === "members"){
       document.body.classList.add("members-open");
@@ -1992,7 +1995,12 @@ async function openComplaintsHub(){
   await loadMyComplaints();
   try{let r=await fetch("/api/hub/complaints/review",{credentials:"include"});if(r.ok){document.getElementById("complaintsAdminBtn").classList.remove("hidden");complaintsAdminData=(await r.json()).complaints||[]}}catch{}
 }
-function closeComplaintsHub(){document.getElementById("complaintsHub").classList.add("hidden");document.body.style.overflow=""}
+function closeComplaintsHub(){
+  document.getElementById("complaintsHub").classList.add("hidden");
+  document.body.style.overflow="";
+  history.replaceState({hubMai:true,view:"home"},"",location.pathname+"#hub");
+  window.scrollTo({top:0,behavior:"auto"});
+}
 async function loadMyComplaints(){
   let box=document.getElementById("myComplaintsList");
   try{let r=await fetch("/api/hub/complaints/me",{credentials:"include"});if(r.status===401){box.innerHTML='<div class="complaintMsg">Conectează-te cu Discord pentru a depune și urmări reclamații.</div>';return}let d=await r.json();if(!r.ok)throw Error(d.error);let a=d.complaints||[];box.innerHTML=a.length?a.map(x=>`<div class="complaintCard ${x.department==="DIICOT"?"diicot":""}"><div class="complaintCardTop"><b>#${ce(String(x.id).slice(0,8).toUpperCase())} · ${ce(x.department)}</b><span class="complaintBadge ${ce(x.status)}">${ce(cStatus(x.status))}</span></div><div class="complaintMeta">${new Date(x.created_at).toLocaleString("ro-RO")}</div>${x.official_reply?`<div class="complaintReply"><b>Răspuns oficial</b><br>${ce(x.official_reply)}</div>`:""}</div>`).join(""):'<div class="complaintMsg">Nu ai depus nicio reclamație.</div>'}catch(e){box.innerHTML=`<div class="complaintMsg">❌ ${ce(e.message)}</div>`}
