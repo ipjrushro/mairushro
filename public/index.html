@@ -1656,9 +1656,13 @@ document.getElementById('diicotNews').onclick=()=>location.href='https://diicotr
         const uid=u.id||payload.id||'';
         const avatar=u.avatar||payload.avatar||'';
         const av=avatar&&uid?`https://cdn.discordapp.com/avatars/${uid}/${avatar}.png?size=128`:'';
-        const rank=esc(u.rank||payload.rank||payload.policeRank||'CIVIL');
-        const isCivil=!rank || rank.toUpperCase()==='CIVIL';
-        document.getElementById('auth').innerHTML=`<div class="hubUser"><button class="hubUserBtn" id="hubUserBtn">${av?`<img src="${av}" alt="">`:'<span class="hubAvatarFallback">MAI</span>'}<span class="hubUserText"><b>${nm}</b><small>${isCivil?'CIVIL · CONT CONECTAT':rank+' · ONLINE'}</small></span><span class="hubChevron">⌄</span></button><div class="hubUserMenu" id="hubUserMenu"><div class="hubUserMenuTop"><b>${nm}</b><span>${isCivil?'CIVIL · poate aplica în structurile MAI':rank}</span></div>${isCivil?'':'<a href="/dashboard">Deschide dashboard Poliție</a>'}<button id="hubLogout">Deconectare</button></div></div>`;
+        const policeRank=String(payload.policeRank||'').trim();
+        const diicotRank=String(payload.diicotRank||'').trim();
+        const isCivil=!policeRank&&!diicotRank;
+        const identity=isCivil?'CIVIL · CONT CONECTAT':policeRank&&diicotRank?`${esc(policeRank)} · POLIȚIE / ${esc(diicotRank)} · DIICOT`:policeRank?`${esc(policeRank)} · POLIȚIA ROMÂNĂ`:`${esc(diicotRank)} · DIICOT`;
+        const menuIdentity=isCivil?'CIVIL · poate aplica în structurile MAI':identity;
+        const dashboardLinks=`${policeRank?'<a href="/dashboard">Deschide dashboard Poliție</a>':''}${diicotRank?'<a href="https://diicotro.rushdiicot6.workers.dev/">Deschide dashboard DIICOT</a>':''}`;
+        document.getElementById('auth').innerHTML=`<div class="hubUser"><button class="hubUserBtn" id="hubUserBtn">${av?`<img src="${av}" alt="">`:'<span class="hubAvatarFallback">MAI</span>'}<span class="hubUserText"><b>${nm}</b><small>${identity}</small></span><span class="hubChevron">⌄</span></button><div class="hubUserMenu" id="hubUserMenu"><div class="hubUserMenuTop"><b>${nm}</b><span>${menuIdentity}</span></div>${dashboardLinks}<button id="hubLogout">Deconectare</button></div></div>`;
         setTimeout(()=>{
           const b=document.getElementById('hubUserBtn'),m=document.getElementById('hubUserMenu'),lo=document.getElementById('hubLogout');
           if(b)b.onclick=e=>{e.stopPropagation();m.classList.toggle('show')};
@@ -1923,7 +1927,7 @@ window.hubAppDecision=async(id,decision)=>{
 /* HUB: login central. CIVIL se poate conecta/aplica; dashboard-urile cer apartenența la structură. */
 (() => {
   const POLICE_URL='/dashboard';
-  const DIICOT_URL='https://diicotro.rushdiicot6.workers.dev/auth/discord';
+  const DIICOT_URL='https://diicotro.rushdiicot6.workers.dev/';
   let access={loggedIn:false,police:false,diicot:false,policeRank:'',diicotRank:''};
 
   const norm=v=>String(v??'').trim().toLowerCase();
@@ -1945,21 +1949,24 @@ window.hubAppDecision=async(id,decision)=>{
       if(payload.loggedIn===false||!me||me.error)return access;
       access.loggedIn=true;
 
-      const rank=payload.policeRank||me.rank||'';
-      access.police=!!(payload.police||payload.isPolice||payload.departments?.police||payload.access?.police||(rank&&rank!=='CIVIL'));
-      access.policeRank=payload.policeRank||rank||'';
+      access.police=!!(payload.police||payload.isPolice||payload.departments?.police?.active||payload.access?.police);
+      access.diicot=!!(payload.diicot||payload.isDiicot||payload.departments?.diicot?.active||payload.access?.diicot);
+      access.policeRank=payload.policeRank||payload.departments?.police?.rank||'';
+      access.diicotRank=payload.diicotRank||payload.departments?.diicot?.rank||'';
 
-      // DIICOT se rezolvă din personalul comun al HUB-ului.
-      try{
-        const pr=await fetch('/api/hub/personnel',{credentials:'include',cache:'no-store'});
-        if(pr.ok){
-          const data=await pr.json();
-          const pm=(data.police||[]).find(x=>sameDiscord(x,me));
-          const dm=(data.diicot||[]).find(x=>sameDiscord(x,me));
-          if(pm){access.police=true;access.policeRank=access.policeRank||pm.rank||''}
-          if(dm){access.diicot=true;access.diicotRank=dm.rank||''}
-        }
-      }catch{}
+      // Fallback doar dacă /api/me provine temporar dintr-un deploy mai vechi.
+      if(!access.police&&!access.diicot){
+        try{
+          const pr=await fetch('/api/hub/personnel',{credentials:'include',cache:'no-store'});
+          if(pr.ok){
+            const data=await pr.json();
+            const pm=(data.police||[]).find(x=>sameDiscord(x,me));
+            const dm=(data.diicot||[]).find(x=>sameDiscord(x,me));
+            if(pm){access.police=true;access.policeRank=pm.rank||''}
+            if(dm){access.diicot=true;access.diicotRank=dm.rank||''}
+          }
+        }catch{}
+      }
       return access;
     }catch{return access}
   }
