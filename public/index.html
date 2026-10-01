@@ -341,28 +341,6 @@ header{
 .hero .agency:before{background:linear-gradient(180deg,rgba(255,255,255,.015),rgba(0,0,0,.04))!important}
 .hero .heroInner{background:linear-gradient(145deg,rgba(7,16,29,.54),rgba(7,13,23,.24))!important;backdrop-filter:blur(3px)!important}
 </style>
-
-<style id="complaintsPremiumCSS">
-.complaintsHub{position:fixed;inset:0;z-index:3000;overflow:auto;background:radial-gradient(circle at 15% 10%,rgba(20,116,255,.18),transparent 34%),radial-gradient(circle at 85% 20%,rgba(242,183,29,.13),transparent 32%),#030812;color:#eaf3ff;font-family:Inter,Arial,sans-serif}
-.complaintsTop{position:sticky;top:0;z-index:5;min-height:92px;padding:16px 5vw;display:flex;align-items:center;justify-content:space-between;gap:20px;background:rgba(3,8,18,.82);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.07)}
-.complaintsTop small,.complaintAdminHead small{font-size:10px;letter-spacing:.18em;color:#6f88a7}.complaintsTop h1{margin:4px 0 0;font:900 27px Inter}.complaintsTop h1 span{color:#42a0ff}
-.complaintsBack,.complaintsAdminBtn,.complaintAdminHead button{border:1px solid rgba(255,255,255,.12);background:rgba(10,22,39,.85);color:#dcecff;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer}
-.complaintsAdminBtn{border-color:rgba(242,183,29,.35);box-shadow:0 0 28px rgba(242,183,29,.08)}
-.complaintsShell{width:min(1180px,92vw);margin:38px auto 80px}.complaintsIntro{padding:24px;border:1px solid rgba(64,150,255,.2);border-radius:20px;background:linear-gradient(135deg,rgba(15,43,79,.72),rgba(7,16,30,.9));box-shadow:0 20px 70px rgba(0,0,0,.25)}.complaintsIntro b{display:block;font-size:19px;margin-bottom:8px}.complaintsIntro span{color:#91a6be;line-height:1.6}
-.complaintForm,.myComplaints{margin-top:18px;padding:25px;border:1px solid rgba(255,255,255,.08);border-radius:22px;background:rgba(6,14,27,.82);box-shadow:0 30px 90px rgba(0,0,0,.28)}
-.complaintDept{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}.complaintDept input{display:none}.complaintDept span{display:block;text-align:center;padding:17px;border:1px solid rgba(255,255,255,.09);border-radius:14px;font-weight:900;cursor:pointer;transition:.2s}.complaintDept input:checked+.deptPolice{border-color:#298cff;background:rgba(30,128,255,.16);box-shadow:0 0 30px rgba(30,128,255,.12)}.complaintDept input:checked+.deptDiicot{border-color:#e7ae1b;background:rgba(231,174,27,.14);box-shadow:0 0 30px rgba(231,174,27,.10)}
-.complaintGrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.complaintGrid label{display:block}.complaintGrid label.wide{grid-column:1/-1}.complaintGrid span{display:block;font-size:12px;font-weight:800;color:#9db2ca;margin:0 0 8px}.complaintGrid input,.complaintGrid select,.complaintGrid textarea{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.09);background:#071221;color:#eaf3ff;border-radius:12px;padding:14px;font:600 14px Inter;outline:none}.complaintGrid textarea{min-height:115px;resize:vertical}.complaintGrid input:focus,.complaintGrid select:focus,.complaintGrid textarea:focus{border-color:#3b9cff;box-shadow:0 0 0 3px rgba(59,156,255,.08),0 0 28px rgba(59,156,255,.08)}
-.complaintSubmit{width:100%;margin-top:18px;padding:16px;border:0;border-radius:13px;background:linear-gradient(90deg,#096edb,#279cff);color:white;font-weight:900;letter-spacing:.05em;cursor:pointer;box-shadow:0 12px 35px rgba(23,128,239,.20)}
-#complaintStatus{margin-top:14px}.complaintMsg{padding:13px;border-radius:11px;background:#0a1727;border:1px solid rgba(255,255,255,.08)}
-.myComplaints h2,.complaintAdminHead h2{margin:4px 0;font-size:21px}.complaintCard{margin-top:14px;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:18px;background:linear-gradient(145deg,rgba(11,25,44,.94),rgba(5,12,23,.96));position:relative;overflow:hidden}.complaintCard:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:#3c9cff}.complaintCard.diicot:before{background:#e5ad1e}.complaintCardTop{display:flex;justify-content:space-between;gap:12px;align-items:center}.complaintBadge{padding:6px 9px;border-radius:999px;font-size:10px;font-weight:900;background:#10243c;color:#86bfff}.complaintBadge.APPROVED{color:#72e8a4;background:rgba(42,184,100,.12)}.complaintBadge.REJECTED{color:#ff8791;background:rgba(235,66,80,.12)}.complaintBadge.IN_REVIEW{color:#ffd46d;background:rgba(242,183,29,.12)}.complaintMeta{margin-top:8px;color:#7189a5;font-size:11px}.complaintReply{margin-top:12px;padding:13px;border-radius:10px;background:rgba(255,255,255,.035);color:#c8d7e7;white-space:pre-wrap;line-height:1.55}
-.complaintAdminHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.complaintFilters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.complaintFilters button{border:1px solid rgba(255,255,255,.08);background:#071322;color:#8097b1;border-radius:10px;padding:10px 12px;font-size:10px;font-weight:900;cursor:pointer}.complaintFilters button.active{color:white;border-color:#368fe8;background:#102b49}
-.complaintFacts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.complaintFact{padding:11px;border-radius:10px;background:rgba(255,255,255,.035)}.complaintFact small{display:block;color:#69819d;font-size:9px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}.complaintFact div{white-space:pre-wrap;line-height:1.45}.complaintFact.wide{grid-column:1/-1}.complaintDecision{margin-top:14px}.complaintDecision textarea{width:100%;box-sizing:border-box;min-height:90px;background:#06111f;border:1px solid rgba(255,255,255,.09);color:white;border-radius:10px;padding:12px;resize:vertical}.complaintDecisionBtns{display:flex;gap:8px;margin-top:9px}.complaintDecisionBtns button{flex:1;padding:11px;border:0;border-radius:9px;font-weight:900;cursor:pointer}.cReview{background:#d69d15;color:#171000}.cApprove{background:#1eae64;color:white}.cReject{background:#c93f4a;color:white}
-@media(max-width:700px){.complaintsTop{align-items:flex-start;flex-wrap:wrap}.complaintGrid,.complaintDept,.complaintFacts{grid-template-columns:1fr}.complaintGrid label.wide,.complaintFact.wide{grid-column:auto}.complaintsShell{width:94vw}}
-</style>
-
-<style id="hubAccountRankCSS">
-.hubUserText{min-width:0}.hubUserText b,.hubUserText small{display:block;max-width:390px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hubUserText small{color:#78baff!important;font-weight:800!important;letter-spacing:.035em!important}.hubUserMenuTop span{line-height:1.45}@media(max-width:650px){.hubUserText b,.hubUserText small{max-width:190px}}
-</style>
 </head>
 <body><div class="nxAurora"></div><div class="nxScan"></div><div class="nxCursor" id="nxCursor"></div><canvas id="fx"></canvas><div class="noise"></div>
 <header><div class="nav"><a class="brand" href="/"><span class="brandLogo"><img src="/uploads/politia-romana-logo.png"></span><span><b>HUB MAI</b><small>RUSH ROMÂNIA · CENTRU OPERAȚIONAL</small></span></a><div id="auth"><a class="account" href="/auth/discord"><i class="online" style="background:#7289da;box-shadow:0 0 12px #7289da"></i><span>AUTENTIFICARE DISCORD</span></a></div></div></header>
@@ -370,10 +348,10 @@ header{
 
 <section class="hero" id="hero">
 <article class="agency police"><div class="agencyBg"></div><div class="shade"></div><div class="spot"></div><div class="heroInner">
-<div class="eyebrow">Structură operativă · Poliția Română</div><img class="heroLogo" src="/uploads/politia-romana-logo.png"><h1 class="title">POLIȚIA <span>ROMÂNĂ</span></h1><div class="accent"></div><p class="desc">Centrul de comandă pentru personal, rapoarte, activități, documente, sancțiuni și administrarea structurii.</p><a class="cta" href="/dashboard">Intră pe site Poliție <b>→</b></a><a class="cta applyCta" href="#aplica-politie" data-apply="POLITIE">Aplică în Poliție <b>＋</b></a>
+<div class="eyebrow">Structură operativă · Poliția Română</div><img class="heroLogo" src="/uploads/politia-romana-logo.png"><h1 class="title">POLIȚIA <span>ROMÂNĂ</span></h1><div class="accent"></div><p class="desc">Centrul de comandă pentru personal, rapoarte, activități, documente, sancțiuni și administrarea structurii.</p><a class="cta" id="enterPolice" href="/dashboard">Intră pe site Poliție <b>→</b></a><a class="cta applyCta" href="#aplica-politie" data-apply="POLITIE">Aplică în Poliție <b>＋</b></a>
 </div></article>
 <article class="agency diicot"><div class="agencyBg"></div><div class="shade"></div><div class="spot"></div><div class="heroInner">
-<div class="eyebrow">Structură specializată · DIICOT</div><img class="heroLogo" src="/uploads/diicot-logo.png"><h1 class="title">DIICOT</h1><div class="accent"></div><p class="desc">Centrul de comandă pentru personal, rapoarte, razii, antrenamente, documente și administrarea structurii.</p><a class="cta" href="https://diicotro.rushdiicot6.workers.dev/dashboard">Intră pe site DIICOT <b>→</b></a><a class="cta applyCta" href="#aplica-diicot" data-apply="DIICOT">Aplică în DIICOT <b>＋</b></a>
+<div class="eyebrow">Structură specializată · DIICOT</div><img class="heroLogo" src="/uploads/diicot-logo.png"><h1 class="title">DIICOT</h1><div class="accent"></div><p class="desc">Centrul de comandă pentru personal, rapoarte, razii, antrenamente, documente și administrarea structurii.</p><a class="cta" id="enterDiicot" href="https://diicotro.rushdiicot6.workers.dev/dashboard">Intră pe site DIICOT <b>→</b></a><a class="cta applyCta" href="#aplica-diicot" data-apply="DIICOT">Aplică în DIICOT <b>＋</b></a>
 </div></article><div class="split"></div><div class="hubCore" id="hubCore">HUB<br>MAI</div>
 </section>
 
@@ -382,7 +360,7 @@ header{
 <a class="module purple" href="#cod-penal" data-open-penal="1"><div class="moduleBg" style="background-image:url('/uploads/card-cod-penal-hd.jpg')"></div><div class="moduleIcon">⚖</div><div class="moduleArrow">›</div><div class="moduleText"><b>Cod Penal</b><span>Deschide direct secțiunea Cod Penal din dashboard.</span></div></a>
 <a class="module purple" href="#responsabilitati" data-open-resp="1"><div class="moduleBg" style="background-image:url('/uploads/card-admin-hd.jpg')"></div><div class="moduleIcon">▤</div><div class="moduleArrow">›</div><div class="moduleText"><b>Responsabilități MAI</b><span>Conducere, anunțuri și administrarea responsabilităților.</span></div></a>
 <a class="module" href="#membri" data-open-members="1"><div class="moduleBg" style="background-image:url('/uploads/card-personal-hd.jpg')"></div><div class="moduleIcon">♙</div><div class="moduleArrow">›</div><div class="moduleText"><b>Membri MAI</b><span>Deschide direct personalul și structura activă.</span></div></a>
-<button class="module red" type="button" onclick="openComplaintsHub()" style="text-align:left"><div class="moduleBg" style="background-image:url('/uploads/card-rapoarte-hd.jpg')"></div><div class="moduleIcon">△</div><div class="moduleArrow">›</div><div class="moduleText"><b>Reclamații MAI</b><span>Poliție / DIICOT · depunere și soluționare oficială.</span></div></button>
+<a class="module red" href="/dashboard?section=overview&complaint=open"><div class="moduleBg" style="background-image:url('/uploads/card-rapoarte-hd.jpg')"></div><div class="moduleIcon">△</div><div class="moduleArrow">›</div><div class="moduleText"><b>Reclamații</b><span>Deschide formularul pentru o reclamație internă.</span></div></a>
 </div></div></section>
 
 <section class="news"><div class="newsHead"><div class="newsTitle"><i></i><h2>Anunțuri oficiale</h2></div><div class="tabs"><button class="tab active" data-filter="ALL">Toate</button><button class="tab" data-filter="POLITIE">Poliție</button><button class="tab" id="diicotNews">DIICOT ↗</button><button class="tab" data-filter="MAI">MAI</button></div></div><div class="newsGrid" id="newsGrid"><div class="empty"><div><b>Se încarcă anunțurile...</b><span>Conectare la centrul de notificări.</span></div></div></div></section>
@@ -1666,34 +1644,10 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function renderNews(filter='ALL'){let arr=notices.filter(n=>n.type==='ANNOUNCEMENT');if(filter==='MAI')arr=arr.filter(n=>/mai|comun|general/i.test((n.title||'')+' '+(n.message||'')));if(filter==='POLITIE')arr=arr.filter(n=>!/diicot/i.test((n.title||'')+' '+(n.message||'')));const box=document.getElementById('newsGrid');if(!arr.length){box.innerHTML='<div class="empty"><div><b>Niciun anunț disponibil</b><span>Nu există anunțuri pentru filtrul selectat.</span></div></div>';return}box.innerHTML=arr.slice(0,6).map(n=>`<article class="notice"><span class="noticeTag">ANUNȚ OFICIAL</span><h3>${esc(n.title)}</h3><p>${esc(n.message)}</p><time>${n.createdAt?new Date(n.createdAt).toLocaleString('ro-RO'):''}</time></article>`).join('')}
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderNews(b.dataset.filter)});
 document.getElementById('diicotNews').onclick=()=>location.href='https://diicotro.rushdiicot6.workers.dev/dashboard';
-(async()=>{try{
-  const r=await fetch('/api/me',{credentials:'include'});
-  if(r.ok){
-    const payload=await r.json();
-    const u=payload?.user || payload;
-    if(u && !u.error){
-      const roles=(u.roles||[]).map(String);
-      const policeRanks=[
-        ['1528758226437275791','RESPONSABIL GUVERNAMENTALE',15],['1528758226437275788','CHESTOR GENERAL',14],['1528758226437275787','CHESTOR PRINCIPAL',13],['1528758226437275786','CHESTOR SECUNDAR',12],['1528758226428891368','COMISAR ȘEF',11],['1528758226428891366','COMISAR',10],['1528758226428891365','SUB COMISAR',9],['1528758226428891364','INSPECTOR PRINCIPAL',8],['1528758226428891363','INSPECTOR',7],['1528758226428891362','SUB INSPECTOR',6],['1528758226428891361','AGENT ȘEF PRINCIPAL',5],['1528758226428891360','AGENT ȘEF ADJUNCT',4],['1528758226428891359','AGENT PRINCIPAL',3],['1528758226420633752','AGENT',2],['1528758226420633750','CADET',1]
-      ];
-      const diicotRanks=[
-        ['1528758226420633746','PROCUROR ȘEF',13],['1528758226420633745','PROCUROR ȘEF ADJUNCT',12],['1528758226420633744','PROCUROR',11],['1528758226416435219','COORDONATOR',10],['1528758226416435217','COMISAR ȘEF',9],['1528758226416435216','COMISAR',8],['1528758226416435215','SUB COMISAR',7],['1528758226416435214','INSPECTOR PRINCIPAL',6],['1528758226416435213','INSPECTOR',5],['1528758226416435211','SUB INSPECTOR',4],['1528758226416435210','AGENT PRINCIPAL',3],['1528758226407919645','AGENT OPERATIV',2],['1528758226407919644','AGENT STAGIAR',1]
-      ];
-      const highest=list=>list.filter(x=>roles.includes(x[0])).sort((a,b)=>b[2]-a[2])[0]||null;
-      const pr=highest(policeRanks), dr=highest(diicotRanks);
-      const nm=esc(u.displayName||u.globalName||u.global_name||u.username||'Cont conectat');
-      const av=u.avatar&&u.id?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=128`:'';
-      let rankLine='CIVIL · FĂRĂ GRAD MAI', detail='Cont Discord autentificat · poți aplica în Poliție sau DIICOT.';
-      if(pr&&dr){rankLine=`POLIȚIE · ${esc(pr[1])} • DIICOT · ${esc(dr[1])}`;detail=`Poliție: ${esc(pr[1])} · DIICOT: ${esc(dr[1])}`}
-      else if(dr){rankLine=`DIICOT · ${esc(dr[1])}`;detail=`Membru D.I.I.C.O.T. · ${esc(dr[1])}`}
-      else if(pr){rankLine=`POLIȚIE · ${esc(pr[1])}`;detail=`Membru Poliția Română · ${esc(pr[1])}`}
-      const links=`${pr?'<a href="/dashboard">Deschide dashboard Poliție</a>':''}${dr?'<a href="https://diicotro.rushdiicot6.workers.dev/dashboard">Deschide dashboard DIICOT</a>':''}${(!pr&&!dr)?'<a href="#aplica-politie">Aplică în Poliție</a><a href="#aplica-diicot">Aplică în DIICOT</a>':''}`;
-      document.getElementById('auth').innerHTML=`<div class="hubUser"><button class="hubUserBtn" id="hubUserBtn">${av?`<img src="${av}" alt="">`:'<span class="hubAvatarFallback">MAI</span>'}<span class="hubUserText"><b>${nm}</b><small>${rankLine}</small></span><span class="hubChevron">⌄</span></button><div class="hubUserMenu" id="hubUserMenu"><div class="hubUserMenuTop"><b>${nm}</b><span>${detail}</span></div>${links}<button id="hubLogout">Deconectare</button></div></div>`;
-      setTimeout(()=>{const b=document.getElementById('hubUserBtn'),m=document.getElementById('hubUserMenu'),lo=document.getElementById('hubLogout');if(b)b.onclick=e=>{e.stopPropagation();m.classList.toggle('show')};document.addEventListener('click',()=>m&&m.classList.remove('show'));if(lo)lo.onclick=async()=>{lo.disabled=true;lo.textContent='Se deconectează...';try{let x=await fetch('/api/logout',{method:'POST',credentials:'include'});location.href=x.ok?'/':'/logout'}catch{location.href='/logout'}}},0);
-    }
-  }
-  const nr=await fetch('/api/notifications',{credentials:'include'});if(nr.ok){const d=await nr.json();notices=d.notifications||[];renderNews()}else renderNews()
-}catch{renderNews()}})();
+(async()=>{try{const r=await fetch('/api/me',{credentials:'include'});if(r.ok){const u=await r.json();if(u&&!u.error){const nm=esc(u.global_name||u.username||'Cont conectat');const av=u.avatar&&u.id?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=128`:'';document.getElementById('auth').innerHTML=`<div class="hubUser"><button class="hubUserBtn" id="hubUserBtn">${av?`<img src="${av}" alt="">`:'<span class="hubAvatarFallback">MAI</span>'}<span class="hubUserText"><b>${nm}</b><small>CONT CONECTAT · ONLINE</small></span><span class="hubChevron">⌄</span></button><div class="hubUserMenu" id="hubUserMenu"><div class="hubUserMenuTop"><b>${nm}</b><span>Sesiune Discord activă</span></div><a href="/dashboard">Deschide dashboard Poliție</a><button id="hubLogout">Deconectare</button></div></div>`;setTimeout(()=>{const b=document.getElementById('hubUserBtn'),m=document.getElementById('hubUserMenu'),lo=document.getElementById('hubLogout');if(b)b.onclick=e=>{e.stopPropagation();m.classList.toggle('show')};document.addEventListener('click',()=>m&&m.classList.remove('show'));if(lo)lo.onclick=async()=>{lo.disabled=true;lo.textContent='Se deconectează...';try{let x=await fetch('/api/logout',{method:'POST',credentials:'include'});if(!x.ok)location.href='/logout';else location.href='/';}catch{location.href='/logout'}}},0)}}const nr=await fetch('/api/notifications',{credentials:'include'});if(nr.ok){const d=await nr.json();notices=d.notifications||[];renderNews() }else renderNews()}catch{renderNews()}})();
+
+
+
 
 /* ===== HUB MAI ROUTER FINAL =====
    Un singur router controlează Acasă / Membri / Cod Penal.
@@ -1704,10 +1658,7 @@ document.getElementById('diicotNews').onclick=()=>location.href='https://diicotr
 
   function renderHubRoute(view){
     routing = true;
-    document.body.classList.remove("members-open","penal-open","resp-open","reg-open","apps-open");
-    const complaintsHub = document.getElementById("complaintsHub");
-    if (complaintsHub) complaintsHub.classList.add("hidden");
-    document.body.style.overflow = "";
+    document.body.classList.remove("members-open","penal-open","resp-open","reg-open");
 
     if(view === "members"){
       document.body.classList.add("members-open");
@@ -1943,89 +1894,75 @@ window.hubAppDecision=async(id,decision)=>{
 })();
 </script>
 
-<div id="complaintsHub" class="complaintsHub hidden">
-  <div class="complaintsTop">
-    <button type="button" class="complaintsBack" onclick="closeComplaintsHub()">← ÎNAPOI LA HUB</button>
-    <div><small>RUSH ROMANIA · MINISTERUL AFACERILOR INTERNE</small><h1>RECLAMAȚII <span>MAI</span></h1></div>
-    <button type="button" id="complaintsAdminBtn" class="complaintsAdminBtn hidden" onclick="toggleComplaintsAdmin()">PANOUL RECLAMAȚII</button>
-  </div>
-  <div class="complaintsGlow"></div>
-  <div class="complaintsShell">
-    <div id="complaintFormView">
-      <div class="complaintsIntro"><b>SESIZARE OFICIALĂ</b><span>Alege structura reclamată și completează informațiile cât mai clar. Reclamația va fi analizată de conducerea autorizată.</span></div>
-      <form id="complaintForm" class="complaintForm">
-        <div class="complaintDept">
-          <label><input type="radio" name="department" value="POLITIE" checked><span class="deptPolice">POLIȚIA ROMÂNĂ</span></label>
-          <label><input type="radio" name="department" value="DIICOT"><span class="deptDiicot">D.I.I.C.O.T.</span></label>
-        </div>
-        <div class="complaintGrid">
-          <label><span>Nume și CNP *</span><input name="name_cnp" maxlength="200" placeholder="Nume Prenume · CNP"></label>
-          <label><span>Ofițer reclamat *</span><input name="officer" maxlength="200" placeholder="Nume / CNP / callsign dacă îl cunoști"></label>
-          <label><span>Data și ora incidentului *</span><input name="incident_datetime" type="datetime-local"></label>
-          <label><span>Locația *</span><input name="location" maxlength="200" placeholder="Locul în care s-a produs incidentul"></label>
-          <label><span>Categoria reclamației *</span><select name="category"><option value="">Selectează...</option><option>Comportament necorespunzător</option><option>Abuz de funcție</option><option>Nerespectarea procedurilor</option><option>Sancțiune / intervenție contestată</option><option>Corupție / favorizare</option><option>Alt motiv</option></select></label>
-          <label><span>Martori</span><input name="witnesses" maxlength="1500" placeholder="Nume / CNP / Discord, dacă există"></label>
-          <label class="wide"><span>Descrierea incidentului *</span><textarea name="description" maxlength="5000" placeholder="Descrie cronologic ce s-a întâmplat, ce a făcut persoana reclamată și orice detaliu relevant."></textarea></label>
-          <label class="wide"><span>Dovezi / linkuri</span><textarea name="evidence" maxlength="2500" placeholder="Link video, capturi, clip, alte dovezi. Nu include parole sau date private inutile."></textarea></label>
-          <label class="wide"><span>Ce soluționare soliciți? *</span><textarea name="requested_resolution" maxlength="2000" placeholder="Spune ce dorești să fie verificat sau soluționat."></textarea></label>
-        </div>
-        <div id="complaintStatus"></div>
-        <button class="complaintSubmit" type="submit">TRIMITE RECLAMAȚIA OFICIALĂ</button>
-      </form>
-      <div class="myComplaints"><h2>RECLAMAȚIILE MELE</h2><div id="myComplaintsList"></div></div>
-    </div>
-    <div id="complaintAdminView" class="hidden">
-      <div class="complaintAdminHead"><div><small>ACCES RESTRICȚIONAT</small><h2>PANOUL RECLAMAȚII MAI</h2></div><button type="button" onclick="toggleComplaintsAdmin()">ÎNAPOI LA FORMULAR</button></div>
-      <div class="complaintFilters">
-        <button class="active" data-cf="ALL">TOATE</button><button data-cf="POLITIE">POLIȚIE</button><button data-cf="DIICOT">DIICOT</button>
-        <button data-cf="PENDING">ÎN AȘTEPTARE</button><button data-cf="IN_REVIEW">ÎN ANALIZĂ</button><button data-cf="APPROVED">ACCEPTATE</button><button data-cf="REJECTED">RESPINSE</button>
-      </div>
-      <div id="complaintsAdminList"></div>
-    </div>
-  </div>
-</div>
+<script id="hubDepartmentAccessV1">
+/* HUB access: autentificare Discord + acces doar la departamentul din care face parte contul. */
+(() => {
+  const POLICE_URL = '/dashboard';
+  const DIICOT_URL = 'https://diicotro.rushdiicot6.workers.dev/dashboard';
+  let access = { loggedIn:false, police:false, diicot:false, policeRank:'', diicotRank:'' };
 
+  const norm = v => String(v ?? '').trim().toLowerCase();
+  const sameDiscord = (member, me) => {
+    const mid = norm(member.discord_id || member.discordId || member.user_id || member.userId || member.id);
+    const uid = norm(me.id || me.discord_id || me.discordId || me.user_id || me.userId);
+    return !!mid && !!uid && mid === uid;
+  };
 
-<script id="complaintsPremiumJS">
-let complaintsAdminData=[], complaintsFilter="ALL";
-const ce=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-function cStatus(s){return {PENDING:"ÎN AȘTEPTARE",IN_REVIEW:"ÎN ANALIZĂ",APPROVED:"ACCEPTATĂ",REJECTED:"RESPINSĂ"}[s]||s}
-async function openComplaintsHub(){
-  document.getElementById("complaintsHub").classList.remove("hidden"); document.body.style.overflow="hidden";
-  await loadMyComplaints();
-  try{let r=await fetch("/api/hub/complaints/review",{credentials:"include"});if(r.ok){document.getElementById("complaintsAdminBtn").classList.remove("hidden");complaintsAdminData=(await r.json()).complaints||[]}}catch{}
-}
-function closeComplaintsHub(){
-  document.getElementById("complaintsHub").classList.add("hidden");
-  document.body.style.overflow="";
-  history.replaceState({hubMai:true,view:"home"},"",location.pathname+"#hub");
-  window.scrollTo({top:0,behavior:"auto"});
-}
-async function loadMyComplaints(){
-  let box=document.getElementById("myComplaintsList");
-  try{let r=await fetch("/api/hub/complaints/me",{credentials:"include"});if(r.status===401){box.innerHTML='<div class="complaintMsg">Conectează-te cu Discord pentru a depune și urmări reclamații.</div>';return}let d=await r.json();if(!r.ok)throw Error(d.error);let a=d.complaints||[];box.innerHTML=a.length?a.map(x=>`<div class="complaintCard ${x.department==="DIICOT"?"diicot":""}"><div class="complaintCardTop"><b>#${ce(String(x.id).slice(0,8).toUpperCase())} · ${ce(x.department)}</b><span class="complaintBadge ${ce(x.status)}">${ce(cStatus(x.status))}</span></div><div class="complaintMeta">${new Date(x.created_at).toLocaleString("ro-RO")}</div>${x.official_reply?`<div class="complaintReply"><b>Răspuns oficial</b><br>${ce(x.official_reply)}</div>`:""}</div>`).join(""):'<div class="complaintMsg">Nu ai depus nicio reclamație.</div>'}catch(e){box.innerHTML=`<div class="complaintMsg">❌ ${ce(e.message)}</div>`}
-}
-document.getElementById("complaintForm").addEventListener("submit",async e=>{
-  e.preventDefault();let f=Object.fromEntries(new FormData(e.currentTarget));let st=document.getElementById("complaintStatus"),b=e.submitter;b.disabled=true;b.textContent="SE TRIMITE...";
-  try{let r=await fetch("/api/hub/complaints",{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify(f)});let d=await r.json();if(r.status===401){location.href="/auth/discord";return}if(!r.ok)throw Error(d.error);st.innerHTML=`<div class="complaintMsg">✅ Reclamația a fost înregistrată. Număr: <b>#${ce(String(d.complaint.id).slice(0,8).toUpperCase())}</b></div>`;e.currentTarget.reset();e.currentTarget.querySelector('[value="POLITIE"]').checked=true;await loadMyComplaints()}catch(x){st.innerHTML=`<div class="complaintMsg">❌ ${ce(x.message)}</div>`}finally{b.disabled=false;b.textContent="TRIMITE RECLAMAȚIA OFICIALĂ"}
-});
-async function toggleComplaintsAdmin(){
-  let form=document.getElementById("complaintFormView"),admin=document.getElementById("complaintAdminView"),opening=admin.classList.contains("hidden");
-  form.classList.toggle("hidden",opening);admin.classList.toggle("hidden",!opening);if(opening)await loadComplaintsAdmin()
-}
-async function loadComplaintsAdmin(){
-  let box=document.getElementById("complaintsAdminList");box.innerHTML='<div class="complaintMsg">Se încarcă...</div>';
-  try{let r=await fetch("/api/hub/complaints/review",{credentials:"include"}),d=await r.json();if(!r.ok)throw Error(d.error);complaintsAdminData=d.complaints||[];renderComplaintsAdmin()}catch(e){box.innerHTML=`<div class="complaintMsg">❌ ${ce(e.message)}</div>`}
-}
-function renderComplaintsAdmin(){
-  let a=complaintsAdminData.filter(x=>complaintsFilter==="ALL"||x.department===complaintsFilter||x.status===complaintsFilter),box=document.getElementById("complaintsAdminList");
-  box.innerHTML=a.length?a.map(x=>`<div class="complaintCard ${x.department==="DIICOT"?"diicot":""}"><div class="complaintCardTop"><b>#${ce(String(x.id).slice(0,8).toUpperCase())} · ${ce(x.department)} · ${ce(x.discord_name)}</b><span class="complaintBadge ${ce(x.status)}">${ce(cStatus(x.status))}</span></div><div class="complaintMeta">${new Date(x.created_at).toLocaleString("ro-RO")} · Discord ${ce(x.discord_id)}</div><div class="complaintFacts"><div class="complaintFact"><small>Nume și CNP</small><div>${ce(x.name_cnp)}</div></div><div class="complaintFact"><small>Ofițer reclamat</small><div>${ce(x.officer)}</div></div><div class="complaintFact"><small>Data / ora</small><div>${ce(x.incident_datetime)}</div></div><div class="complaintFact"><small>Locație</small><div>${ce(x.location)}</div></div><div class="complaintFact wide"><small>Categorie</small><div>${ce(x.category)}</div></div><div class="complaintFact wide"><small>Descriere</small><div>${ce(x.description)}</div></div><div class="complaintFact wide"><small>Martori</small><div>${ce(x.witnesses||"-")}</div></div><div class="complaintFact wide"><small>Dovezi</small><div>${ce(x.evidence||"-")}</div></div><div class="complaintFact wide"><small>Soluționare solicitată</small><div>${ce(x.requested_resolution)}</div></div></div><div class="complaintDecision"><textarea id="cr_${ce(x.id)}" placeholder="Scrie răspunsul oficial...">${ce(x.official_reply||"")}</textarea><div class="complaintDecisionBtns"><button class="cReview" onclick="complaintDecision('${ce(x.id)}','IN_REVIEW')">ÎN ANALIZĂ</button><button class="cApprove" onclick="complaintDecision('${ce(x.id)}','APPROVED')">ACCEPTĂ</button><button class="cReject" onclick="complaintDecision('${ce(x.id)}','REJECTED')">RESPINGE</button></div></div>${x.decided_by_name?`<div class="complaintMeta">Ultima acțiune: ${ce(x.decided_by_name)}</div>`:""}</div>`).join(""):'<div class="complaintMsg">Nu există reclamații pentru filtrul selectat.</div>'
-}
-document.querySelectorAll(".complaintFilters button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".complaintFilters button").forEach(x=>x.classList.remove("active"));b.classList.add("active");complaintsFilter=b.dataset.cf;renderComplaintsAdmin()});
-async function complaintDecision(id,decision){
-  let official_reply=document.getElementById("cr_"+id)?.value||"";
-  try{let r=await fetch(`/api/hub/complaints/${id}/decision`,{method:"POST",credentials:"include",headers:{"Content-Type":"application/json"},body:JSON.stringify({decision,official_reply})}),d=await r.json();if(!r.ok)throw Error(d.error);await loadComplaintsAdmin();alert(decision==="IN_REVIEW"?"Reclamația este acum în analiză.":"Reclamația a fost soluționată și reclamantul a fost notificat prin Discord DM.")}catch(e){alert(e.message)}
-}
+  function toast(msg, ok=false){
+    let t=document.getElementById('hubAccessToast');
+    if(!t){t=document.createElement('div');t.id='hubAccessToast';Object.assign(t.style,{position:'fixed',left:'50%',bottom:'28px',transform:'translateX(-50%)',zIndex:'99999',maxWidth:'520px',padding:'14px 18px',borderRadius:'12px',font:'700 12px Inter,Arial',color:'#fff',background:'rgba(7,17,30,.97)',border:'1px solid rgba(255,255,255,.13)',boxShadow:'0 18px 55px rgba(0,0,0,.45)',backdropFilter:'blur(18px)',transition:'.2s'});document.body.appendChild(t)}
+    t.textContent=msg;t.style.borderColor=ok?'rgba(65,220,145,.45)':'rgba(255,105,120,.42)';t.style.opacity='1';clearTimeout(t._h);t._h=setTimeout(()=>t.style.opacity='0',3500);
+  }
+
+  async function resolveAccess(){
+    let me=null;
+    try{
+      const r=await fetch('/api/me',{credentials:'include',cache:'no-store'});
+      if(!r.ok) return access;
+      me=await r.json();
+      if(!me || me.error) return access;
+      access.loggedIn=true;
+
+      // Dacă backend-ul trimite deja accesul/gradele, le folosim direct.
+      access.police = !!(me.police || me.isPolice || me.departments?.police || me.access?.police);
+      access.diicot = !!(me.diicot || me.isDiicot || me.departments?.diicot || me.access?.diicot);
+      access.policeRank = me.policeRank || me.police_rank || me.departments?.police?.rank || '';
+      access.diicotRank = me.diicotRank || me.diicot_rank || me.departments?.diicot?.rank || '';
+
+      // Fallback: verifică listele reale deja folosite de HUB.
+      if(!access.police || !access.diicot){
+        try{
+          const pr=await fetch('/api/hub/personnel',{credentials:'include',cache:'no-store'});
+          if(pr.ok){
+            const data=await pr.json();
+            const pm=(data.police||[]).find(x=>sameDiscord(x,me));
+            const dm=(data.diicot||[]).find(x=>sameDiscord(x,me));
+            if(pm){access.police=true;access.policeRank=access.policeRank||pm.rank||''}
+            if(dm){access.diicot=true;access.diicotRank=access.diicotRank||dm.rank||''}
+          }
+        }catch{}
+      }
+      return access;
+    }catch{return access}
+  }
+
+  function enter(dept){
+    if(!access.loggedIn){ location.href='/auth/discord'; return; }
+    if(dept==='POLITIE'){
+      if(!access.police){toast('Nu ai grad în Poliția Română. Poți trimite o aplicație din HUB.');return}
+      location.href=POLICE_URL; return;
+    }
+    if(!access.diicot){toast('Nu ai grad în D.I.I.C.O.T. Poți trimite o aplicație din HUB.');return}
+    location.href=DIICOT_URL;
+  }
+
+  document.addEventListener('DOMContentLoaded', async()=>{
+    const p=document.getElementById('enterPolice'), d=document.getElementById('enterDiicot');
+    if(p){p.addEventListener('click',e=>{e.preventDefault();enter('POLITIE')})}
+    if(d){d.addEventListener('click',e=>{e.preventDefault();enter('DIICOT')})}
+    await resolveAccess();
+  });
+})();
 </script>
 
 </body></html>
