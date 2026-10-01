@@ -351,7 +351,7 @@ header{
 <div class="eyebrow">Structură operativă · Poliția Română</div><img class="heroLogo" src="/uploads/politia-romana-logo.png"><h1 class="title">POLIȚIA <span>ROMÂNĂ</span></h1><div class="accent"></div><p class="desc">Centrul de comandă pentru personal, rapoarte, activități, documente, sancțiuni și administrarea structurii.</p><a class="cta" id="enterPolice" href="/dashboard">Intră pe site Poliție <b>→</b></a><a class="cta applyCta" href="#aplica-politie" data-apply="POLITIE">Aplică în Poliție <b>＋</b></a>
 </div></article>
 <article class="agency diicot"><div class="agencyBg"></div><div class="shade"></div><div class="spot"></div><div class="heroInner">
-<div class="eyebrow">Structură specializată · DIICOT</div><img class="heroLogo" src="/uploads/diicot-logo.png"><h1 class="title">DIICOT</h1><div class="accent"></div><p class="desc">Centrul de comandă pentru personal, rapoarte, razii, antrenamente, documente și administrarea structurii.</p><a class="cta" id="enterDiicot" href="https://diicotro.rushdiicot6.workers.dev/enter">Intră pe site DIICOT <b>→</b></a><a class="cta applyCta" href="#aplica-diicot" data-apply="DIICOT">Aplică în DIICOT <b>＋</b></a>
+<div class="eyebrow">Structură specializată · DIICOT</div><img class="heroLogo" src="/uploads/diicot-logo.png"><h1 class="title">DIICOT</h1><div class="accent"></div><p class="desc">Centrul de comandă pentru personal, rapoarte, razii, antrenamente, documente și administrarea structurii.</p><a class="cta" id="enterDiicot" href="https://diicotro.rushdiicot6.workers.dev/auth/discord">Intră pe site DIICOT <b>→</b></a><a class="cta applyCta" href="#aplica-diicot" data-apply="DIICOT">Aplică în DIICOT <b>＋</b></a>
 </div></article><div class="split"></div><div class="hubCore" id="hubCore">HUB<br>MAI</div>
 </section>
 
@@ -1661,7 +1661,7 @@ document.getElementById('diicotNews').onclick=()=>location.href='https://diicotr
         const isCivil=!policeRank&&!diicotRank;
         const identity=isCivil?'CIVIL · CONT CONECTAT':policeRank&&diicotRank?`${esc(policeRank)} · POLIȚIE / ${esc(diicotRank)} · DIICOT`:policeRank?`${esc(policeRank)} · POLIȚIA ROMÂNĂ`:`${esc(diicotRank)} · DIICOT`;
         const menuIdentity=isCivil?'CIVIL · poate aplica în structurile MAI':identity;
-        const dashboardLinks=`${policeRank?'<a href="/dashboard">Deschide dashboard Poliție</a>':''}${diicotRank?'<a href="https://diicotro.rushdiicot6.workers.dev/enter">Deschide dashboard DIICOT</a>':''}`;
+        const dashboardLinks=`${policeRank?'<a href="/dashboard">Deschide dashboard Poliție</a>':''}${diicotRank?'<a href="https://diicotro.rushdiicot6.workers.dev/auth/discord">Deschide dashboard DIICOT</a>':''}`;
         document.getElementById('auth').innerHTML=`<div class="hubUser"><button class="hubUserBtn" id="hubUserBtn">${av?`<img src="${av}" alt="">`:'<span class="hubAvatarFallback">MAI</span>'}<span class="hubUserText"><b>${nm}</b><small>${identity}</small></span><span class="hubChevron">⌄</span></button><div class="hubUserMenu" id="hubUserMenu"><div class="hubUserMenuTop"><b>${nm}</b><span>${menuIdentity}</span></div>${dashboardLinks}<button id="hubLogout">Deconectare</button></div></div>`;
         setTimeout(()=>{
           const b=document.getElementById('hubUserBtn'),m=document.getElementById('hubUserMenu'),lo=document.getElementById('hubLogout');
@@ -1927,7 +1927,7 @@ window.hubAppDecision=async(id,decision)=>{
 /* HUB: login central. CIVIL se poate conecta/aplica; dashboard-urile cer apartenența la structură. */
 (() => {
   const POLICE_URL='/dashboard';
-  const DIICOT_URL='https://diicotro.rushdiicot6.workers.dev/enter';
+  const DIICOT_URL='https://diicotro.rushdiicot6.workers.dev/auth/discord';
   let access={loggedIn:false,police:false,diicot:false,policeRank:'',diicotRank:''};
 
   const norm=v=>String(v??'').trim().toLowerCase();
