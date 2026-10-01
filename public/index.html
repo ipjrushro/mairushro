@@ -1644,8 +1644,33 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function renderNews(filter='ALL'){let arr=notices.filter(n=>n.type==='ANNOUNCEMENT');if(filter==='MAI')arr=arr.filter(n=>/mai|comun|general/i.test((n.title||'')+' '+(n.message||'')));if(filter==='POLITIE')arr=arr.filter(n=>!/diicot/i.test((n.title||'')+' '+(n.message||'')));const box=document.getElementById('newsGrid');if(!arr.length){box.innerHTML='<div class="empty"><div><b>Niciun anunț disponibil</b><span>Nu există anunțuri pentru filtrul selectat.</span></div></div>';return}box.innerHTML=arr.slice(0,6).map(n=>`<article class="notice"><span class="noticeTag">ANUNȚ OFICIAL</span><h3>${esc(n.title)}</h3><p>${esc(n.message)}</p><time>${n.createdAt?new Date(n.createdAt).toLocaleString('ro-RO'):''}</time></article>`).join('')}
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderNews(b.dataset.filter)});
 document.getElementById('diicotNews').onclick=()=>location.href='https://diicotro.rushdiicot6.workers.dev/auth/discord';
-(async()=>{try{const r=await fetch('/api/me',{credentials:'include'});if(r.ok){const u=await r.json();if(u&&!u.error){const nm=esc(u.global_name||u.username||'Cont conectat');const av=u.avatar&&u.id?`https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png?size=128`:'';document.getElementById('auth').innerHTML=`<div class="hubUser"><button class="hubUserBtn" id="hubUserBtn">${av?`<img src="${av}" alt="">`:'<span class="hubAvatarFallback">MAI</span>'}<span class="hubUserText"><b>${nm}</b><small>CONT CONECTAT · ONLINE</small></span><span class="hubChevron">⌄</span></button><div class="hubUserMenu" id="hubUserMenu"><div class="hubUserMenuTop"><b>${nm}</b><span>Sesiune Discord activă</span></div><a href="/dashboard">Deschide dashboard Poliție</a><button id="hubLogout">Deconectare</button></div></div>`;setTimeout(()=>{const b=document.getElementById('hubUserBtn'),m=document.getElementById('hubUserMenu'),lo=document.getElementById('hubLogout');if(b)b.onclick=e=>{e.stopPropagation();m.classList.toggle('show')};document.addEventListener('click',()=>m&&m.classList.remove('show'));if(lo)lo.onclick=async()=>{lo.disabled=true;lo.textContent='Se deconectează...';try{let x=await fetch('/api/logout',{method:'POST',credentials:'include'});if(!x.ok)location.href='/logout';else location.href='/';}catch{location.href='/logout'}}},0)}}const nr=await fetch('/api/notifications',{credentials:'include'});if(nr.ok){const d=await nr.json();notices=d.notifications||[];renderNews() }else renderNews()}catch{renderNews()}})();
-
+(async()=>{
+  try{
+    const r=await fetch('/api/me',{credentials:'include',cache:'no-store'});
+    if(r.ok){
+      const payload=await r.json();
+      const u=payload.user||payload;
+      if(payload.loggedIn!==false && u && !u.error){
+        const rawName=u.displayName||u.globalName||u.global_name||u.username||payload.displayName||payload.global_name||payload.username||'Cont conectat';
+        const nm=esc(rawName);
+        const uid=u.id||payload.id||'';
+        const avatar=u.avatar||payload.avatar||'';
+        const av=avatar&&uid?`https://cdn.discordapp.com/avatars/${uid}/${avatar}.png?size=128`:'';
+        const rank=esc(u.rank||payload.rank||payload.policeRank||'CIVIL');
+        const isCivil=!rank || rank.toUpperCase()==='CIVIL';
+        document.getElementById('auth').innerHTML=`<div class="hubUser"><button class="hubUserBtn" id="hubUserBtn">${av?`<img src="${av}" alt="">`:'<span class="hubAvatarFallback">MAI</span>'}<span class="hubUserText"><b>${nm}</b><small>${isCivil?'CIVIL · CONT CONECTAT':rank+' · ONLINE'}</small></span><span class="hubChevron">⌄</span></button><div class="hubUserMenu" id="hubUserMenu"><div class="hubUserMenuTop"><b>${nm}</b><span>${isCivil?'CIVIL · poate aplica în structurile MAI':rank}</span></div>${isCivil?'':'<a href="/dashboard">Deschide dashboard Poliție</a>'}<button id="hubLogout">Deconectare</button></div></div>`;
+        setTimeout(()=>{
+          const b=document.getElementById('hubUserBtn'),m=document.getElementById('hubUserMenu'),lo=document.getElementById('hubLogout');
+          if(b)b.onclick=e=>{e.stopPropagation();m.classList.toggle('show')};
+          document.addEventListener('click',()=>m&&m.classList.remove('show'));
+          if(lo)lo.onclick=async()=>{lo.disabled=true;lo.textContent='Se deconectează...';try{let x=await fetch('/api/logout',{method:'POST',credentials:'include'});if(!x.ok)location.href='/logout';else location.href='/';}catch{location.href='/logout'}};
+        },0);
+      }
+    }
+    const nr=await fetch('/api/notifications',{credentials:'include'});
+    if(nr.ok){const d=await nr.json();notices=d.notifications||[];renderNews()}else renderNews();
+  }catch{renderNews()}
+})();
 
 
 
@@ -1894,72 +1919,63 @@ window.hubAppDecision=async(id,decision)=>{
 })();
 </script>
 
-<script id="hubDepartmentAccessV1">
-/* HUB access: autentificare Discord + acces doar la departamentul din care face parte contul. */
+<script id="hubDepartmentAccessV2">
+/* HUB: login central. CIVIL se poate conecta/aplica; dashboard-urile cer apartenența la structură. */
 (() => {
-  const POLICE_URL = '/dashboard';
-  const DIICOT_URL = 'https://diicotro.rushdiicot6.workers.dev/auth/discord';
-  let access = { loggedIn:false, police:false, diicot:false, policeRank:'', diicotRank:'' };
+  const POLICE_URL='/dashboard';
+  const DIICOT_URL='https://diicotro.rushdiicot6.workers.dev/auth/discord';
+  let access={loggedIn:false,police:false,diicot:false,policeRank:'',diicotRank:''};
 
-  const norm = v => String(v ?? '').trim().toLowerCase();
-  const sameDiscord = (member, me) => {
-    const mid = norm(member.discord_id || member.discordId || member.user_id || member.userId || member.id);
-    const uid = norm(me.id || me.discord_id || me.discordId || me.user_id || me.userId);
-    return !!mid && !!uid && mid === uid;
+  const norm=v=>String(v??'').trim().toLowerCase();
+  const sameDiscord=(member,me)=>{
+    const mid=norm(member.discord_id||member.discordId||member.user_id||member.userId||member.id);
+    const uid=norm(me.id||me.discord_id||me.discordId||me.user_id||me.userId);
+    return !!mid&&!!uid&&mid===uid;
   };
-
-  function toast(msg, ok=false){
+  function toast(msg,ok=false){
     let t=document.getElementById('hubAccessToast');
     if(!t){t=document.createElement('div');t.id='hubAccessToast';Object.assign(t.style,{position:'fixed',left:'50%',bottom:'28px',transform:'translateX(-50%)',zIndex:'99999',maxWidth:'520px',padding:'14px 18px',borderRadius:'12px',font:'700 12px Inter,Arial',color:'#fff',background:'rgba(7,17,30,.97)',border:'1px solid rgba(255,255,255,.13)',boxShadow:'0 18px 55px rgba(0,0,0,.45)',backdropFilter:'blur(18px)',transition:'.2s'});document.body.appendChild(t)}
     t.textContent=msg;t.style.borderColor=ok?'rgba(65,220,145,.45)':'rgba(255,105,120,.42)';t.style.opacity='1';clearTimeout(t._h);t._h=setTimeout(()=>t.style.opacity='0',3500);
   }
-
   async function resolveAccess(){
-    let me=null;
     try{
       const r=await fetch('/api/me',{credentials:'include',cache:'no-store'});
-      if(!r.ok) return access;
-      me=await r.json();
-      if(!me || me.error) return access;
+      if(!r.ok)return access;
+      const payload=await r.json(), me=payload.user||payload;
+      if(payload.loggedIn===false||!me||me.error)return access;
       access.loggedIn=true;
 
-      // Dacă backend-ul trimite deja accesul/gradele, le folosim direct.
-      access.police = !!(me.police || me.isPolice || me.departments?.police || me.access?.police);
-      access.diicot = !!(me.diicot || me.isDiicot || me.departments?.diicot || me.access?.diicot);
-      access.policeRank = me.policeRank || me.police_rank || me.departments?.police?.rank || '';
-      access.diicotRank = me.diicotRank || me.diicot_rank || me.departments?.diicot?.rank || '';
+      const rank=payload.policeRank||me.rank||'';
+      access.police=!!(payload.police||payload.isPolice||payload.departments?.police||payload.access?.police||(rank&&rank!=='CIVIL'));
+      access.policeRank=payload.policeRank||rank||'';
 
-      // Fallback: verifică listele reale deja folosite de HUB.
-      if(!access.police || !access.diicot){
-        try{
-          const pr=await fetch('/api/hub/personnel',{credentials:'include',cache:'no-store'});
-          if(pr.ok){
-            const data=await pr.json();
-            const pm=(data.police||[]).find(x=>sameDiscord(x,me));
-            const dm=(data.diicot||[]).find(x=>sameDiscord(x,me));
-            if(pm){access.police=true;access.policeRank=access.policeRank||pm.rank||''}
-            if(dm){access.diicot=true;access.diicotRank=access.diicotRank||dm.rank||''}
-          }
-        }catch{}
-      }
+      // DIICOT se rezolvă din personalul comun al HUB-ului.
+      try{
+        const pr=await fetch('/api/hub/personnel',{credentials:'include',cache:'no-store'});
+        if(pr.ok){
+          const data=await pr.json();
+          const pm=(data.police||[]).find(x=>sameDiscord(x,me));
+          const dm=(data.diicot||[]).find(x=>sameDiscord(x,me));
+          if(pm){access.police=true;access.policeRank=access.policeRank||pm.rank||''}
+          if(dm){access.diicot=true;access.diicotRank=dm.rank||''}
+        }
+      }catch{}
       return access;
     }catch{return access}
   }
-
   function enter(dept){
-    if(!access.loggedIn){ location.href='/auth/discord'; return; }
+    if(!access.loggedIn){location.href='/auth/discord';return}
     if(dept==='POLITIE'){
-      if(!access.police){toast('Nu ai grad în Poliția Română. Poți trimite o aplicație din HUB.');return}
-      location.href=POLICE_URL; return;
+      if(!access.police){toast('Cont conectat ca CIVIL. Nu ai grad în Poliția Română; poți trimite o aplicație din HUB.');return}
+      location.href=POLICE_URL;return;
     }
-    if(!access.diicot){toast('Nu ai grad în D.I.I.C.O.T. Poți trimite o aplicație din HUB.');return}
+    if(!access.diicot){toast('Cont conectat ca CIVIL. Nu ai grad în D.I.I.C.O.T.; poți trimite o aplicație din HUB.');return}
     location.href=DIICOT_URL;
   }
-
-  document.addEventListener('DOMContentLoaded', async()=>{
-    const p=document.getElementById('enterPolice'), d=document.getElementById('enterDiicot');
-    if(p){p.addEventListener('click',e=>{e.preventDefault();enter('POLITIE')})}
-    if(d){d.addEventListener('click',e=>{e.preventDefault();enter('DIICOT')})}
+  document.addEventListener('DOMContentLoaded',async()=>{
+    const p=document.getElementById('enterPolice'),d=document.getElementById('enterDiicot');
+    if(p)p.addEventListener('click',e=>{e.preventDefault();enter('POLITIE')});
+    if(d)d.addEventListener('click',e=>{e.preventDefault();enter('DIICOT')});
     await resolveAccess();
   });
 })();
