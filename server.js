@@ -4341,13 +4341,18 @@ app.post(
             return;
         }
 
-        // Workers do not execute the Node startup callback, so configure the
-        // bucket CORS lazily before the browser receives direct PUT URLs.
-        try {
-            await ensureB2DirectUploadCors();
-        } catch (corsError) {
-            console.error("B2 direct upload CORS error:", corsError?.message || corsError);
-            return res.status(502).json({ error: "Uploadul direct B2 nu a putut fi configurat (CORS)." });
+        // IMPORTANT:
+        // Nu configurăm bucket CORS în timpul requestului pe Cloudflare Workers.
+        // PutBucketCors este o operație de administrare și poate bloca runtime-ul
+        // Workers ("code had hung and would never generate a response").
+        // Pe Node/Render păstrăm comportamentul existent.
+        if (process.env.CLOUDFLARE_WORKERS !== "1") {
+            try {
+                await ensureB2DirectUploadCors();
+            } catch (corsError) {
+                console.error("B2 direct upload CORS error:", corsError?.message || corsError);
+                return res.status(502).json({ error: "Uploadul direct B2 nu a putut fi configurat (CORS)." });
+            }
         }
 
         const files = Array.isArray(req.body?.files) ? req.body.files : [];
