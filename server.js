@@ -4420,11 +4420,21 @@ app.put(
             });
         }
 
-        const body = req.body;
+        let body = req.body;
+
+        // Express.raw() întoarce Buffer în Node, dar în runtime-uri edge
+        // putem primi și Uint8Array / ArrayBuffer. Normalizăm înainte de B2.
+        if (!Buffer.isBuffer(body)) {
+            if (body instanceof Uint8Array) {
+                body = Buffer.from(body);
+            } else if (body instanceof ArrayBuffer) {
+                body = Buffer.from(new Uint8Array(body));
+            }
+        }
 
         if (!Buffer.isBuffer(body) || body.length < 1) {
             return res.status(400).json({
-                error: "Imaginea nu a fost primită."
+                error: "Imaginea nu a fost primită corect de Worker."
             });
         }
 
@@ -4463,7 +4473,12 @@ app.put(
         } catch (error) {
             console.error("B2 image proxy upload error:", error);
             return res.status(502).json({
-                error: "Imaginea nu a putut fi salvată în Backblaze B2."
+                error: "Imaginea nu a putut fi salvată în Backblaze B2.",
+                details: String(
+                    error?.message ||
+                    error?.name ||
+                    "Eroare B2 necunoscută"
+                )
             });
         }
     }
@@ -4479,19 +4494,8 @@ app.post(
             return;
         }
 
-        // IMPORTANT:
-        // Nu configurăm bucket CORS în timpul requestului pe Cloudflare Workers.
-        // PutBucketCors este o operație de administrare și poate bloca runtime-ul
-        // Workers ("code had hung and would never generate a response").
-        // Pe Node/Render păstrăm comportamentul existent.
-        if (process.env.CLOUDFLARE_WORKERS !== "1") {
-            try {
-                await ensureB2DirectUploadCors();
-            } catch (corsError) {
-                console.error("B2 direct upload CORS error:", corsError?.message || corsError);
-                return res.status(502).json({ error: "Uploadul direct B2 nu a putut fi configurat (CORS)." });
-            }
-        }
+        // Uploadul imaginilor trece prin acest Worker, deci bucketul B2
+        // nu are nevoie de CORS pentru formularul de rapoarte.
 
         const files = Array.isArray(req.body?.files) ? req.body.files : [];
 
@@ -11983,7 +11987,53 @@ app.post(
                 if (!stillPresent) cleared++;
             }
 
-            // IMPORTANT: un singur subrequest Supabase pentru toate sloturile.
+            // IMPORTANT:
+            // docs_personnel.discord_id are UNIQUE. Dacă o persoană se mută
+            // de pe un slot pe altul, Postgres poate vedea temporar același
+            // Discord ID pe două rânduri în timpul UPSERT-ului.
+            //
+            // Eliberăm întâi TOATE sloturile Poliției într-un singur request,
+            // apoi salvăm grila finală într-un singur UPSERT.
+            // Totalul rămâne foarte mic: 1 SELECT + 1 CLEAR + 1 UPSERT Supabase.
+            const policeRowIds = policeRows
+                .map(row => String(row.id || "").trim())
+                .filter(Boolean);
+
+            if (policeRowIds.length) {
+                const { error: clearDiscordError } =
+                    await supabase
+                        .from("docs_personnel")
+                        .update({
+                            discord_id: null,
+                            active: false,
+                            updated_at: now,
+                            updated_by_id: editorId,
+                            updated_by_name: editorName
+                        })
+                        .in("id", policeRowIds);
+
+                if (clearDiscordError) {
+                    throw clearDiscordError;
+                }
+            }
+
+            // Protecție suplimentară: în payload fiecare Discord ID poate
+            // apărea cel mult o singură dată.
+            const seenDiscordIds = new Set();
+            for (const row of slotRows) {
+                const discordId = String(row.discord_id || "").trim();
+                if (!discordId) continue;
+
+                if (seenDiscordIds.has(discordId)) {
+                    row.discord_id = null;
+                    row.full_name = "";
+                    row.active = false;
+                    row.discord = "";
+                } else {
+                    seenDiscordIds.add(discordId);
+                }
+            }
+
             const payload = slotRows.map(row => ({
                 id: row.id,
                 discord_id: row.discord_id || null,
