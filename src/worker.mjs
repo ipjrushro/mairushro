@@ -7,356 +7,175 @@ const PORT = 3000;
 app.listen(PORT);
 const handler = httpServerHandler({ port: PORT });
 
-const textEncoder = new TextEncoder();
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
-function base64UrlToBytes(value) {
-  const base64 = String(value || "")
-    .replace(/-/g, "+")
-    .replace(/_/g, "/")
-    .padEnd(Math.ceil(String(value || "").length / 4) * 4, "=");
-
+function b64urlBytes(value) {
+  const raw = String(value || "");
+  const base64 = raw.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(raw.length / 4) * 4, "=");
   const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-
-  return bytes;
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
 }
 
-function bytesToBase64Url(bytes) {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
-}
-
-function bytesEqual(a, b) {
+function equalBytes(a, b) {
   if (a.length !== b.length) return false;
-
   let diff = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    diff |= a[i] ^ b[i];
-  }
-
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
   return diff === 0;
 }
 
-async function verifyImageUploadToken(token, env) {
+async function verifyToken(token, env, kind) {
   const parts = String(token || "").split(".");
-  if (parts.length !== 2 || !parts[0] || !parts[1]) {
-    throw new Error("Token upload invalid.");
-  }
+  if (parts.length !== 2 || !parts[0] || !parts[1]) throw new Error("Token invalid.");
 
   const [encoded, signature] = parts;
-  const secret = String(
-    env.SESSION_SECRET ||
-    env.B2_APPLICATION_KEY ||
-    "change-this-secret"
-  );
+  const secret = String(env.SESSION_SECRET || env.B2_APPLICATION_KEY || "change-this-secret");
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const expected = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(encoded)));
+  const actual = b64urlBytes(signature);
+  if (!equalBytes(expected, actual)) throw new Error("Semnătura tokenului este invalidă.");
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    textEncoder.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
+  const payload = JSON.parse(decoder.decode(b64urlBytes(encoded)));
+  if (!payload.exp || Date.now() > Number(payload.exp)) throw new Error("Token expirat.");
 
-  const expected = new Uint8Array(
-    await crypto.subtle.sign(
-      "HMAC",
-      key,
-      textEncoder.encode(encoded)
-    )
-  );
-
-  const actual = base64UrlToBytes(signature);
-
-  if (!bytesEqual(expected, actual)) {
-    throw new Error("Token upload invalid.");
-  }
-
-  const payload = JSON.parse(
-    new TextDecoder().decode(base64UrlToBytes(encoded))
-  );
-
-  if (!payload.exp || Date.now() > Number(payload.exp)) {
-    throw new Error("Tokenul imaginii a expirat.");
-  }
-
-  const contentType = String(payload.contentType || "").toLowerCase();
-  const size = Number(payload.size || 0);
   const objectKey = String(payload.key || "");
-
-  if (
-    !objectKey.startsWith("images/") ||
-    objectKey.includes("..") ||
-    !["image/jpeg", "image/png", "image/webp"].includes(contentType) ||
-    !Number.isFinite(size) ||
-    size < 1 ||
-    size > 8 * 1024 * 1024
-  ) {
-    throw new Error("Date upload invalide.");
+  if (kind === "image" && (!objectKey.startsWith("images/") || objectKey.includes(".."))) {
+    throw new Error("Cheie imagine invalidă.");
   }
-
+  if (kind === "metadata" && (!objectKey.startsWith("reports/") || !objectKey.endsWith(".json") || objectKey.includes(".."))) {
+    throw new Error("Cheie raport invalidă.");
+  }
   return payload;
 }
 
-async function b2Authorize(env) {
-  const keyId = String(env.B2_KEY_ID || "");
-  const applicationKey = String(env.B2_APPLICATION_KEY || "");
+async function authorizeB2(env) {
+  const id = String(env.B2_KEY_ID || "");
+  const key = String(env.B2_APPLICATION_KEY || "");
+  if (!id || !key) throw new Error("Lipsesc B2_KEY_ID/B2_APPLICATION_KEY.");
 
-  if (!keyId || !applicationKey) {
-    throw new Error("Lipsesc B2_KEY_ID/B2_APPLICATION_KEY.");
-  }
-
-  const basic = btoa(`${keyId}:${applicationKey}`);
-
-  const response = await fetch(
-    "https://api.backblazeb2.com/b2api/v3/b2_authorize_account",
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Basic ${basic}`
-      }
-    }
-  );
-
-  const text = await response.text();
-  let data = null;
-
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok || !data) {
-    throw new Error(
-      `B2 authorize HTTP ${response.status}: ${text.slice(0, 250)}`
-    );
-  }
-
+  const r = await fetch("https://api.backblazeb2.com/b2api/v3/b2_authorize_account", {
+    headers: { Authorization: `Basic ${btoa(`${id}:${key}`)}` }
+  });
+  const text = await r.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = null; }
+  if (!r.ok || !data) throw new Error(`B2 authorize HTTP ${r.status}: ${text.slice(0, 250)}`);
   return data;
 }
 
-function getStorageApiInfo(auth) {
-  return (
-    auth?.apiInfo?.storageApi ||
-    auth?.apiInfo?.storage_api ||
-    null
-  );
+function storageApi(auth) {
+  return auth?.apiInfo?.storageApi || auth?.apiInfo?.storage_api || null;
 }
 
-async function resolveBucketId(auth, env) {
-  const storage = getStorageApiInfo(auth);
-  const allowedBucketId =
-    storage?.allowed?.bucketId ||
-    storage?.allowed?.bucket_id ||
-    auth?.allowed?.bucketId ||
-    auth?.allowed?.bucket_id ||
-    "";
-
-  if (allowedBucketId) return String(allowedBucketId);
+async function bucketId(auth, env) {
+  const storage = storageApi(auth);
+  const allowed = storage?.allowed || auth?.allowed || {};
+  if (allowed.bucketId || allowed.bucket_id) return String(allowed.bucketId || allowed.bucket_id);
 
   const apiUrl = storage?.apiUrl || storage?.api_url;
   const accountId = auth?.accountId || auth?.account_id;
-  const authToken =
-    auth?.authorizationToken ||
-    auth?.authorization_token;
+  const token = auth?.authorizationToken || auth?.authorization_token;
+  if (!apiUrl || !accountId || !token) throw new Error("Răspuns B2 authorize incomplet.");
 
-  if (!apiUrl || !accountId || !authToken) {
-    throw new Error("Răspunsul B2 authorize este incomplet.");
-  }
-
-  const response = await fetch(
-    `${apiUrl}/b2api/v3/b2_list_buckets`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: authToken,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        accountId,
-        bucketName: String(env.B2_BUCKET || "")
-      })
-    }
-  );
-
-  const text = await response.text();
-  let data = null;
-
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok || !data) {
-    throw new Error(
-      `B2 list buckets HTTP ${response.status}: ${text.slice(0, 250)}`
-    );
-  }
-
-  const bucket = Array.isArray(data.buckets)
-    ? data.buckets.find(
-        item => String(item.bucketName || "") === String(env.B2_BUCKET || "")
-      )
-    : null;
-
-  if (!bucket?.bucketId) {
-    throw new Error(`Bucketul B2 "${env.B2_BUCKET || ""}" nu a fost găsit.`);
-  }
-
-  return String(bucket.bucketId);
+  const r = await fetch(`${apiUrl}/b2api/v3/b2_list_buckets`, {
+    method: "POST",
+    headers: { Authorization: token, "Content-Type": "application/json" },
+    body: JSON.stringify({ accountId, bucketName: String(env.B2_BUCKET || "") })
+  });
+  const text = await r.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = null; }
+  if (!r.ok || !data) throw new Error(`B2 list buckets HTTP ${r.status}: ${text.slice(0, 250)}`);
+  const found = (data.buckets || []).find(x => String(x.bucketName || "") === String(env.B2_BUCKET || ""));
+  if (!found?.bucketId) throw new Error(`Bucketul ${env.B2_BUCKET || ""} nu a fost găsit.`);
+  return String(found.bucketId);
 }
 
-async function getB2UploadTarget(auth, bucketId) {
-  const storage = getStorageApiInfo(auth);
+async function uploadTarget(auth, id) {
+  const storage = storageApi(auth);
   const apiUrl = storage?.apiUrl || storage?.api_url;
-  const authToken =
-    auth?.authorizationToken ||
-    auth?.authorization_token;
+  const token = auth?.authorizationToken || auth?.authorization_token;
+  if (!apiUrl || !token) throw new Error("Răspuns B2 authorize incomplet.");
 
-  if (!apiUrl || !authToken) {
-    throw new Error("Răspunsul B2 authorize este incomplet.");
+  const r = await fetch(`${apiUrl}/b2api/v3/b2_get_upload_url`, {
+    method: "POST",
+    headers: { Authorization: token, "Content-Type": "application/json" },
+    body: JSON.stringify({ bucketId: id })
+  });
+  const text = await r.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = null; }
+  if (!r.ok || !data?.uploadUrl || !data?.authorizationToken) {
+    throw new Error(`B2 get upload URL HTTP ${r.status}: ${text.slice(0, 250)}`);
   }
-
-  const response = await fetch(
-    `${apiUrl}/b2api/v3/b2_get_upload_url`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: authToken,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ bucketId })
-    }
-  );
-
-  const text = await response.text();
-  let data = null;
-
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok || !data?.uploadUrl || !data?.authorizationToken) {
-    throw new Error(
-      `B2 get upload URL HTTP ${response.status}: ${text.slice(0, 250)}`
-    );
-  }
-
   return data;
 }
 
-async function uploadImageNative(request, env, url) {
+async function nativeUpload(env, objectKey, contentType, body) {
+  const auth = await authorizeB2(env);
+  const id = await bucketId(auth, env);
+  const target = await uploadTarget(auth, id);
+  const sha1 = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-1", body)))
+    .map(b => b.toString(16).padStart(2, "0")).join("");
+
+  const r = await fetch(target.uploadUrl, {
+    method: "POST",
+    headers: {
+      Authorization: target.authorizationToken,
+      "X-Bz-File-Name": encodeURIComponent(objectKey),
+      "Content-Type": contentType,
+      "Content-Length": String(body.byteLength),
+      "X-Bz-Content-Sha1": sha1
+    },
+    body
+  });
+
+  const text = await r.text();
+  if (!r.ok) throw new Error(`B2 upload HTTP ${r.status}: ${text.slice(0, 350)}`);
+  let data = {};
+  try { data = text ? JSON.parse(text) : {}; } catch {}
+  return data;
+}
+
+async function imageUpload(request, env, url) {
   try {
-    const token = url.searchParams.get("token");
-    const payload = await verifyImageUploadToken(token, env);
-
-    const requestType = String(
-      request.headers.get("content-type") || ""
-    )
-      .split(";")[0]
-      .trim()
-      .toLowerCase();
-
-    if (requestType !== String(payload.contentType).toLowerCase()) {
-      return Response.json(
-        { error: "Tipul imaginii nu corespunde." },
-        { status: 400 }
-      );
+    const payload = await verifyToken(url.searchParams.get("token"), env, "image");
+    const contentType = String(request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
+    if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
+      return Response.json({ error: "Tip imagine invalid." }, { status: 400 });
     }
-
+    if (contentType !== String(payload.contentType || "").toLowerCase()) {
+      return Response.json({ error: "Tipul imaginii nu corespunde." }, { status: 400 });
+    }
     const body = await request.arrayBuffer();
+    if (!body.byteLength || body.byteLength !== Number(payload.size || 0)) {
+      return Response.json({ error: "Dimensiunea imaginii nu corespunde." }, { status: 400 });
+    }
+    const data = await nativeUpload(env, String(payload.key), contentType, body);
+    return Response.json({ success: true, key: String(payload.key), fileId: data?.fileId || null });
+  } catch (e) {
+    return Response.json({ error: "Upload imagine eșuat.", details: String(e?.message || e) }, { status: 500 });
+  }
+}
 
-    if (!body.byteLength) {
-      return Response.json(
-        { error: "Imaginea este goală." },
-        { status: 400 }
-      );
+async function metadataUpload(request, env, url) {
+  try {
+    const payload = await verifyToken(url.searchParams.get("token"), env, "metadata");
+    const body = await request.arrayBuffer();
+    if (!body.byteLength || body.byteLength > 2 * 1024 * 1024) {
+      return Response.json({ error: "Metadata raport invalidă." }, { status: 400 });
     }
 
-    if (body.byteLength !== Number(payload.size)) {
-      return Response.json(
-        {
-          error: "Dimensiunea imaginii nu corespunde.",
-          expected: Number(payload.size),
-          received: body.byteLength
-        },
-        { status: 400 }
-      );
-    }
+    // Validăm că body-ul este JSON înainte de a-l pune în B2.
+    try { JSON.parse(decoder.decode(body)); }
+    catch { return Response.json({ error: "Metadata raport nu este JSON valid." }, { status: 400 }); }
 
-    // Backblaze Native API: fetch nativ, fără AWS SDK în Workers.
-    const auth = await b2Authorize(env);
-    const bucketId = await resolveBucketId(auth, env);
-    const uploadTarget = await getB2UploadTarget(auth, bucketId);
-
-    const sha1 = Array.from(
-      new Uint8Array(await crypto.subtle.digest("SHA-1", body))
-    )
-      .map(byte => byte.toString(16).padStart(2, "0"))
-      .join("");
-
-    const uploadResponse = await fetch(
-      uploadTarget.uploadUrl,
-      {
-        method: "POST",
-        headers: {
-          Authorization: uploadTarget.authorizationToken,
-          "X-Bz-File-Name": encodeURIComponent(String(payload.key)),
-          "Content-Type": String(payload.contentType),
-          "Content-Length": String(body.byteLength),
-          "X-Bz-Content-Sha1": sha1,
-          "X-Bz-Info-src_last_modified_millis": String(Date.now())
-        },
-        body
-      }
-    );
-
-    const uploadText = await uploadResponse.text();
-    let uploadData = null;
-
-    try {
-      uploadData = uploadText ? JSON.parse(uploadText) : {};
-    } catch {
-      uploadData = null;
-    }
-
-    if (!uploadResponse.ok) {
-      return Response.json(
-        {
-          error: "Backblaze B2 a refuzat imaginea.",
-          details: uploadData?.message || uploadText.slice(0, 350),
-          status: uploadResponse.status
-        },
-        { status: 502 }
-      );
-    }
-
-    return Response.json({
-      success: true,
-      key: String(payload.key),
-      fileId: uploadData?.fileId || null
-    });
-  } catch (error) {
-    return Response.json(
-      {
-        error: "Uploadul imaginii a eșuat.",
-        details: String(error?.message || error || "Eroare necunoscută")
-      },
-      { status: 500 }
-    );
+    const data = await nativeUpload(env, String(payload.key), "application/json; charset=utf-8", body);
+    return Response.json({ success: true, key: String(payload.key), fileId: data?.fileId || null });
+  } catch (e) {
+    return Response.json({ error: "Salvarea raportului în B2 a eșuat.", details: String(e?.message || e) }, { status: 500 });
   }
 }
 
@@ -364,57 +183,37 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // IMPORTANT: interceptăm uploadul înainte să intre în Express.
-    // AWS SDK rămâne disponibil pentru restul aplicației, dar pozele rapoartelor
-    // sunt urcate în B2 exclusiv cu fetch nativ ca să nu mai blocheze Worker-ul.
-    if (
-      request.method === "PUT" &&
-      url.pathname === "/api/report-image-upload"
-    ) {
-      return uploadImageNative(request, env, url);
+    if (request.method === "PUT" && url.pathname === "/api/report-image-upload") {
+      return imageUpload(request, env, url);
+    }
+    if (request.method === "PUT" && url.pathname === "/api/internal/report-metadata-upload") {
+      return metadataUpload(request, env, url);
     }
 
     try {
       const response = await handler.fetch(request, env, ctx);
-
       if (url.pathname.startsWith("/api/")) {
-        const contentType = String(
-          response.headers.get("content-type") || ""
-        ).toLowerCase();
-
-        if (contentType.includes("text/html")) {
+        const ct = String(response.headers.get("content-type") || "").toLowerCase();
+        if (ct.includes("text/html")) {
           const body = await response.text();
-
-          return Response.json(
-            {
-              error: "API-ul Poliției a returnat HTML în loc de JSON.",
-              route: url.pathname,
-              status: response.status,
-              details: body.replace(/\s+/g, " ").slice(0, 500)
-            },
-            { status: response.ok ? 502 : response.status }
-          );
+          return Response.json({
+            error: "API-ul Poliției a returnat HTML în loc de JSON.",
+            route: url.pathname,
+            status: response.status,
+            details: body.replace(/\s+/g, " ").slice(0, 500)
+          }, { status: response.ok ? 502 : response.status });
         }
       }
-
       return response;
-    } catch (error) {
+    } catch (e) {
       if (url.pathname.startsWith("/api/")) {
-        return Response.json(
-          {
-            error: "Eroare internă în API-ul Poliției.",
-            route: url.pathname,
-            details: String(
-              error?.message ||
-              error ||
-              "Eroare necunoscută"
-            )
-          },
-          { status: 500 }
-        );
+        return Response.json({
+          error: "Eroare internă în API-ul Poliției.",
+          route: url.pathname,
+          details: String(e?.message || e || "Eroare necunoscută")
+        }, { status: 500 });
       }
-
-      throw error;
+      throw e;
     }
   },
 
