@@ -12104,6 +12104,7 @@ body:after{
 </style>
 
     <!-- POLITIE_DOCS_BATCH_SYNC_V2 -->
+    <!-- POLITIE_FINAL_REPORTS_DOCS_FIX_20261002 -->
 </head>
 
 
@@ -23404,8 +23405,7 @@ const query =
 
                 try {
 
-                    // 1) Cerem de la Render doar URL-uri PUT semnate.
-                    // Niciun byte din imagini nu este trimis către Render.
+                    // 1) Pregătim uploadul securizat al imaginilor prin API-ul Poliției.
                     const signResponse = await fetch(
                         "/api/report-upload-urls",
                         {
@@ -23424,7 +23424,16 @@ const query =
                         }
                     );
 
-                    const signData = await signResponse.json();
+                    const signText = await signResponse.text();
+                    let signData = {};
+
+                    try {
+                        signData = signText ? JSON.parse(signText) : {};
+                    } catch {
+                        throw new Error(
+                            `API upload invalid (HTTP ${signResponse.status}): serverul nu a răspuns JSON.`
+                        );
+                    }
 
                     if (!signResponse.ok) {
                         throw new Error(
@@ -23433,8 +23442,8 @@ const query =
                         );
                     }
 
-                    // 2) Browser -> Backblaze B2 direct.
-                    // Render nu primește fișierele.
+                    // 2) Browser -> Worker Poliție -> Backblaze B2.
+                    // Este same-origin, deci nu depinde de CORS-ul bucketului.
                     const selectedFiles = Array.from(files);
 
                     for (let index = 0; index < selectedFiles.length; index += 1) {
@@ -23461,15 +23470,25 @@ const query =
                         );
 
                         if (!b2Response.ok) {
+                            let uploadError = null;
+
+                            try {
+                                uploadError = await b2Response.json();
+                            } catch {
+                                uploadError = null;
+                            }
+
                             throw new Error(
-                                `Backblaze a refuzat imaginea ${index + 1} (HTTP ${b2Response.status}). Verifică CORS-ul bucket-ului.`
+                                uploadError?.error
+                                    ? `${uploadError.error}${uploadError.details ? ` — ${uploadError.details}` : ""}`
+                                    : `Imaginea ${index + 1} nu a putut fi încărcată (HTTP ${b2Response.status}).`
                             );
                         }
                     }
 
                     button.textContent = "SE SALVEAZĂ RAPORTUL...";
 
-                    // 3) Către Render merg doar textul raportului + manifestul semnat.
+                    // 3) Salvăm textul raportului + manifestul semnat.
                     reportPayload.uploadManifestToken = signData.uploadManifestToken;
 
                     const response = await fetch(
