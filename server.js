@@ -4331,6 +4331,21 @@ function verifyDirectUploadManifest(token, userId) {
     return payload;
 }
 
+// Token intern pentru salvarea JSON-ului raportului prin Worker Native B2.
+// Separat de tokenul imaginilor, dar folosește aceeași cheie HMAC existentă.
+function signReportMetadataWorkerToken(payload) {
+    const encoded = Buffer
+        .from(JSON.stringify(payload), "utf8")
+        .toString("base64url");
+
+    const signature = crypto
+        .createHmac("sha256", getDirectUploadTokenSecret())
+        .update(encoded)
+        .digest("base64url");
+
+    return `${encoded}.${signature}`;
+}
+
 // Token scurt pentru uploadul unei singure imagini prin același Worker.
 // Astfel browserul NU mai face PUT direct către Backblaze și nu mai depinde de CORS B2.
 function signReportImageProxyToken(payload) {
@@ -5260,22 +5275,54 @@ app.post(
                     now
             };
 
-            await b2.send(
-                new PutObjectCommand({
-                    Bucket: B2_BUCKET,
-                    Key: metadataKey,
-                    Body:
-                        JSON.stringify(
-                            report,
-                            null,
-                            2
-                        ),
-                    ContentType:
-                        "application/json; charset=utf-8",
-                    CacheControl:
-                        "no-store"
-                })
-            );
+            // Cloudflare Workers: salvarea metadata JSON nu mai trece prin AWS SDK.
+            // worker.mjs interceptează această rută internă și scrie în B2 prin Native API.
+            if (process.env.CLOUDFLARE_WORKERS === "1") {
+                const internalToken = signReportMetadataWorkerToken({
+                    userId: authorId,
+                    key: metadataKey,
+                    exp: Date.now() + DIRECT_UPLOAD_TTL_SECONDS * 1000
+                });
+
+                const origin =
+                    `${req.protocol}://${req.get("host")}`;
+
+                const metadataResponse = await fetch(
+                    `${origin}/api/internal/report-metadata-upload?token=${encodeURIComponent(internalToken)}`,
+                    {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json; charset=utf-8"
+                        },
+                        body: JSON.stringify(report)
+                    }
+                );
+
+                const metadataText = await metadataResponse.text();
+
+                if (!metadataResponse.ok) {
+                    throw new Error(
+                        `B2 metadata upload HTTP ${metadataResponse.status}: ${metadataText.slice(0, 350)}`
+                    );
+                }
+            } else {
+                await b2.send(
+                    new PutObjectCommand({
+                        Bucket: B2_BUCKET,
+                        Key: metadataKey,
+                        Body:
+                            JSON.stringify(
+                                report,
+                                null,
+                                2
+                            ),
+                        ContentType:
+                            "application/json; charset=utf-8",
+                        CacheControl:
+                            "no-store"
+                    })
+                );
+            }
 
             // Raportul apare imediat pe site fără recitire din B2.
             addReportToB2Cache(report);
@@ -5319,7 +5366,9 @@ app.post(
                         : "Raportul a fost postat în Backblaze B2.",
                 discordNotification,
                 report:
-                    await withDirectB2ImageUrls(report)
+                    process.env.CLOUDFLARE_WORKERS === "1"
+                        ? mapB2Report(report)
+                        : await withDirectB2ImageUrls(report)
             });
         }
         catch (error) {
