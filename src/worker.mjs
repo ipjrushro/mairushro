@@ -181,150 +181,102 @@ async function metadataUpload(request, env, url) {
 
 
 // ======================================================
-// BACKBLAZE B2 — ȘTERGERE BULK RAPOARTE (S3 + SigV4 nativ)
-// Evită AWS SDK în Cloudflare Workers și șterge definitiv toate
-// versiunile de sub reports/ și images/ în loturi de până la 1000.
+// BACKBLAZE B2 — ȘTERGERE RAPOARTE (Native API)
+// Folosește aceleași credențiale/API care funcționează deja la upload.
+// Ștergem toate versiunile pentru reports/ și images/, nu doar ultima versiune.
 // ======================================================
-function hex(bytes) {
-  return Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, "0")).join("");
-}
+async function listNativeFileVersions(env, prefix) {
+  const auth = await authorizeB2(env);
+  const storage = storageApi(auth);
+  const apiUrl = storage?.apiUrl || storage?.api_url;
+  const token = auth?.authorizationToken || auth?.authorization_token;
+  const id = await bucketId(auth, env);
+  if (!apiUrl || !token || !id) throw new Error("Răspuns B2 authorize incomplet pentru ștergere.");
 
-async function sha256(value) {
-  const bytes = typeof value === "string" ? encoder.encode(value) : value;
-  return hex(await crypto.subtle.digest("SHA-256", bytes));
-}
-
-async function hmac(key, value) {
-  const raw = typeof key === "string" ? encoder.encode(key) : key;
-  const k = await crypto.subtle.importKey("raw", raw, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  return new Uint8Array(await crypto.subtle.sign("HMAC", k, encoder.encode(value)));
-}
-
-function awsEncode(value) {
-  return encodeURIComponent(String(value)).replace(/[!'()*]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
-}
-
-function xmlDecode(value) {
-  return String(value || "")
-    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'").replace(/&amp;/g, "&");
-}
-
-function xmlEscape(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
-}
-
-async function signedS3Fetch(env, method, canonicalQuery, body = "") {
-  const endpoint = new URL(String(env.B2_ENDPOINT || ""));
-  const bucket = String(env.B2_BUCKET || "");
-  const accessKey = String(env.B2_KEY_ID || "");
-  const secret = String(env.B2_APPLICATION_KEY || "");
-  const region = String(env.B2_REGION || "");
-  if (!bucket || !accessKey || !secret || !region || !endpoint.host) throw new Error("Configurația B2_* este incompletă.");
-
-  const now = new Date();
-  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
-  const dateStamp = amzDate.slice(0, 8);
-  const canonicalUri = `/${awsEncode(bucket)}/`;
-  const payloadHash = await sha256(body);
-  const canonicalHeaders = `host:${endpoint.host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
-  const signedHeaders = "host;x-amz-content-sha256;x-amz-date";
-  const canonicalRequest = `${method}\n${canonicalUri}\n${canonicalQuery}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
-  const scope = `${dateStamp}/${region}/s3/aws4_request`;
-  const stringToSign = `AWS4-HMAC-SHA256\n${amzDate}\n${scope}\n${await sha256(canonicalRequest)}`;
-
-  const kDate = await hmac(`AWS4${secret}`, dateStamp);
-  const kRegion = await hmac(kDate, region);
-  const kService = await hmac(kRegion, "s3");
-  const kSigning = await hmac(kService, "aws4_request");
-  const signature = hex(await (async () => {
-    const k = await crypto.subtle.importKey("raw", kSigning, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-    return crypto.subtle.sign("HMAC", k, encoder.encode(stringToSign));
-  })());
-
-  const auth = `AWS4-HMAC-SHA256 Credential=${accessKey}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
-  const url = `${endpoint.origin}${canonicalUri}${canonicalQuery ? `?${canonicalQuery}` : ""}`;
-  const headers = {
-    Authorization: auth,
-    "x-amz-date": amzDate,
-    "x-amz-content-sha256": payloadHash
-  };
-  if (body) headers["Content-Type"] = "application/xml";
-  return fetch(url, { method, headers, body: body || undefined });
-}
-
-function xmlTag(block, tag) {
-  const m = String(block || "").match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`));
-  return m ? xmlDecode(m[1]) : "";
-}
-
-async function listS3Versions(env, prefix) {
-  const all = [];
-  let keyMarker = "";
-  let versionMarker = "";
+  const files = [];
+  let startFileName = null;
+  let startFileId = null;
   let pages = 0;
-  do {
-    pages += 1;
-    if (pages > 100) throw new Error(`Prea multe pagini B2 pentru ${prefix}.`);
-    const q = [
-      `prefix=${awsEncode(prefix)}`,
-      ...(keyMarker ? [`key-marker=${awsEncode(keyMarker)}`] : []),
-      ...(versionMarker ? [`version-id-marker=${awsEncode(versionMarker)}`] : []),
-      "versions="
-    ].sort().join("&");
-    const r = await signedS3Fetch(env, "GET", q);
-    const xml = await r.text();
-    if (!r.ok) throw new Error(`B2 list versions HTTP ${r.status}: ${xml.slice(0, 350)}`);
 
-    for (const kind of ["Version", "DeleteMarker"]) {
-      const re = new RegExp(`<${kind}>([\\s\\S]*?)<\\/${kind}>`, "g");
-      let m;
-      while ((m = re.exec(xml))) {
-        const Key = xmlTag(m[1], "Key");
-        const VersionId = xmlTag(m[1], "VersionId");
-        if (Key && VersionId && Key.startsWith(prefix)) all.push({ Key, VersionId });
-      }
+  while (true) {
+    pages += 1;
+    if (pages > 200) throw new Error(`Prea multe pagini B2 pentru ${prefix}.`);
+
+    const body = {
+      bucketId: id,
+      prefix,
+      maxFileCount: 1000
+    };
+    if (startFileName) body.startFileName = startFileName;
+    if (startFileId) body.startFileId = startFileId;
+
+    const r = await fetch(`${apiUrl}/b2api/v3/b2_list_file_versions`, {
+      method: "POST",
+      headers: { Authorization: token, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    const text = await r.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : {}; } catch {}
+    if (!r.ok || !data) throw new Error(`B2 list file versions HTTP ${r.status}: ${text.slice(0, 500)}`);
+
+    for (const f of (data.files || [])) {
+      const fileName = String(f.fileName || "");
+      const fileId = String(f.fileId || "");
+      if (fileName.startsWith(prefix) && fileId) files.push({ fileName, fileId });
     }
-    const truncated = /<IsTruncated>true<\/IsTruncated>/i.test(xml);
-    if (!truncated) break;
-    keyMarker = xmlTag(xml, "NextKeyMarker");
-    versionMarker = xmlTag(xml, "NextVersionIdMarker");
-    if (!keyMarker) throw new Error("B2 a returnat listă trunchiată fără NextKeyMarker.");
-  } while (true);
-  return all;
+
+    startFileName = data.nextFileName || null;
+    startFileId = data.nextFileId || null;
+    if (!startFileName) break;
+  }
+
+  return { auth, apiUrl, token, files };
 }
 
-async function deleteS3VersionBatch(env, objects) {
-  if (!objects.length) return;
-  const body = `<Delete>${objects.map(o => `<Object><Key>${xmlEscape(o.Key)}</Key><VersionId>${xmlEscape(o.VersionId)}</VersionId></Object>`).join("")}<Quiet>true</Quiet></Delete>`;
-  const r = await signedS3Fetch(env, "POST", "delete=", body);
+async function deleteNativeFileVersion(apiUrl, token, file) {
+  const r = await fetch(`${apiUrl}/b2api/v3/b2_delete_file_version`, {
+    method: "POST",
+    headers: { Authorization: token, "Content-Type": "application/json" },
+    body: JSON.stringify({ fileName: file.fileName, fileId: file.fileId })
+  });
   const text = await r.text();
-  if (!r.ok || /<Error>/i.test(text)) throw new Error(`B2 bulk delete HTTP ${r.status}: ${text.slice(0, 500)}`);
+  if (!r.ok) throw new Error(`B2 delete ${file.fileName} HTTP ${r.status}: ${text.slice(0, 350)}`);
+}
+
+async function deleteNativeFilesInBatches(apiUrl, token, files) {
+  // Loturi mici ca să nu bombardăm B2. Pentru volume foarte mari continuăm
+  // secvențial pe loturi; fiecare versiune este ștearsă definitiv.
+  const concurrency = 8;
+  for (let i = 0; i < files.length; i += concurrency) {
+    await Promise.all(
+      files.slice(i, i + concurrency).map(file => deleteNativeFileVersion(apiUrl, token, file))
+    );
+  }
 }
 
 async function deleteAllReportStorage(env) {
-  const [reports, images] = await Promise.all([
-    listS3Versions(env, "reports/"),
-    listS3Versions(env, "images/")
-  ]);
-  const objects = [...images, ...reports];
-  for (let i = 0; i < objects.length; i += 1000) {
-    await deleteS3VersionBatch(env, objects.slice(i, i + 1000));
+  // O singură autorizare/listare per prefix; folosim Native B2 API, nu S3 SigV4.
+  const reportListing = await listNativeFileVersions(env, "reports/");
+  const imageListing = await listNativeFileVersions(env, "images/");
+
+  await deleteNativeFilesInBatches(reportListing.apiUrl, reportListing.token, reportListing.files);
+  await deleteNativeFilesInBatches(imageListing.apiUrl, imageListing.token, imageListing.files);
+
+  // Verificare finală. Dacă ceva a rămas, dashboard-ul primește eroare reală.
+  const remainingReports = await listNativeFileVersions(env, "reports/");
+  const remainingImages = await listNativeFileVersions(env, "images/");
+
+  if (remainingReports.files.length || remainingImages.files.length) {
+    throw new Error(
+      `Au rămas obiecte în B2: reports=${remainingReports.files.length}, images=${remainingImages.files.length}`
+    );
   }
 
-  // Verificare finală: nu declarăm succes dacă mai există versiuni.
-  const [remainingReports, remainingImages] = await Promise.all([
-    listS3Versions(env, "reports/"),
-    listS3Versions(env, "images/")
-  ]);
-  if (remainingReports.length || remainingImages.length) {
-    throw new Error(`Au rămas obiecte în B2: reports=${remainingReports.length}, images=${remainingImages.length}`);
-  }
   return {
-    deletedReports: reports.filter(x => x.Key.endsWith(".json")).length,
-    deletedImages: images.length
+    deletedReports: reportListing.files.filter(x => x.fileName.endsWith(".json")).length,
+    deletedImages: imageListing.files.length,
+    deletedVersions: reportListing.files.length + imageListing.files.length
   };
 }
 
