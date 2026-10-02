@@ -205,7 +205,7 @@ const TRAINING_REPORT_CHANNEL_ID = "1541879731127976056";
 const POLICE_FINE_LOG_CHANNEL_ID = "1528758230191181833";
 const POLICE_JAIL_LOG_CHANNEL_ID = "1528758230191181832";
 const POLICE_LOG_TIMEZONE = "Europe/Bucharest";
-const POLICE_LOG_CACHE_TTL_MS = 60 * 1000;
+const POLICE_LOG_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minute - reduce Discord/API subrequests
 let policeLogOverviewCache = { expiresAt: 0, data: null };
 
 
@@ -349,8 +349,8 @@ function discordMemberAvatar(user = {}) {
 // Evită zeci de request-uri identice către Discord.
 // ======================================================
 
-const DISCORD_MEMBER_CACHE_TTL_MS = 5 * 60 * 1000;
-const DISCORD_GUILD_CACHE_TTL_MS = 5 * 60 * 1000;
+const DISCORD_MEMBER_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minute
+const DISCORD_GUILD_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minute
 
 const discordMemberCache =
     new Map();
