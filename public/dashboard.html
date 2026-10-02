@@ -23423,7 +23423,17 @@ const query =
                         }
                     );
 
-                    const signData = await signResponse.json();
+                    const signContentType = String(signResponse.headers.get("content-type") || "").toLowerCase();
+                    const signRaw = await signResponse.text();
+                    let signData = {};
+
+                    try {
+                        signData = signRaw ? JSON.parse(signRaw) : {};
+                    } catch {
+                        throw new Error(
+                            `API upload invalid (${signResponse.status}): serverul a răspuns HTML/text în loc de JSON.`
+                        );
+                    }
 
                     if (!signResponse.ok) {
                         throw new Error(
@@ -23483,8 +23493,16 @@ const query =
                         }
                     );
 
-                    const data =
-                        await response.json();
+                    const reportRaw = await response.text();
+                    let data = {};
+
+                    try {
+                        data = reportRaw ? JSON.parse(reportRaw) : {};
+                    } catch {
+                        throw new Error(
+                            `API raport invalid (${response.status}): serverul a răspuns HTML/text în loc de JSON.`
+                        );
+                    }
 
 
                     if (!response.ok) {
