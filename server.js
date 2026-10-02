@@ -5603,6 +5603,19 @@ app.delete(
         }
 
         try {
+            // În Cloudflare Workers ștergerea prin AWS SDK poate bloca runtime-ul.
+            // Worker-ul interceptează acest răspuns DUPĂ ce requireAdmin + confirmarea
+            // au fost validate și execută ștergerea bulk direct în B2 prin S3 API.
+            if (process.env.CLOUDFLARE_WORKERS === "1") {
+                clearB2ReportCache();
+                return res.json({
+                    success: true,
+                    nativeB2Delete: true,
+                    message: "Ștergerea Backblaze B2 este pregătită."
+                });
+            }
+
+            // În Node/Render păstrăm varianta AWS SDK existentă.
             // B2 păstrează versiuni. Le enumerăm și le ștergem explicit
             // cu VersionId, inclusiv eventualele delete markers.
             const reportVersions = await listB2ObjectVersions("reports/");
