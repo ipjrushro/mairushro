@@ -4331,8 +4331,146 @@ function verifyDirectUploadManifest(token, userId) {
     return payload;
 }
 
-// Browserul cere URL-uri PUT semnate, apoi trimite fișierele DIRECT în B2.
-// Render vede doar metadatele (nume, tip, dimensiune, key), nu bytes-ii imaginilor.
+// Token scurt pentru uploadul unei singure imagini prin același Worker.
+// Astfel browserul NU mai face PUT direct către Backblaze și nu mai depinde de CORS B2.
+function signReportImageProxyToken(payload) {
+    const encoded = Buffer
+        .from(JSON.stringify(payload), "utf8")
+        .toString("base64url");
+
+    const signature = crypto
+        .createHmac("sha256", getDirectUploadTokenSecret())
+        .update(encoded)
+        .digest("base64url");
+
+    return `${encoded}.${signature}`;
+}
+
+function verifyReportImageProxyToken(token, userId) {
+    const [encoded, signature, ...extra] = String(token || "").split(".");
+
+    if (!encoded || !signature || extra.length) {
+        throw new Error("Tokenul imaginii este invalid.");
+    }
+
+    const expected = crypto
+        .createHmac("sha256", getDirectUploadTokenSecret())
+        .update(encoded)
+        .digest("base64url");
+
+    const a = Buffer.from(signature);
+    const b = Buffer.from(expected);
+
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+        throw new Error("Tokenul imaginii nu este valid.");
+    }
+
+    const payload = JSON.parse(
+        Buffer.from(encoded, "base64url").toString("utf8")
+    );
+
+    if (String(payload.userId || "") !== String(userId || "")) {
+        throw new Error("Tokenul imaginii aparține altui utilizator.");
+    }
+
+    if (!payload.exp || Date.now() > Number(payload.exp)) {
+        throw new Error("Tokenul imaginii a expirat.");
+    }
+
+    const key = String(payload.key || "");
+    const contentType = String(payload.contentType || "");
+    const size = Number(payload.size || 0);
+
+    if (
+        !key.startsWith("images/") ||
+        key.includes("..") ||
+        !DIRECT_UPLOAD_ALLOWED_TYPES.has(contentType) ||
+        !Number.isFinite(size) ||
+        size < 1 ||
+        size > DIRECT_UPLOAD_MAX_FILE_SIZE
+    ) {
+        throw new Error("Datele imaginii sunt invalide.");
+    }
+
+    return payload;
+}
+
+// Upload same-origin: Browser -> Worker -> Backblaze.
+// Fișierul este trimis individual (max 8 MB), apoi Worker-ul îl pune în bucketul privat.
+app.put(
+    "/api/report-image-upload",
+    requireAuth,
+    express.raw({
+        type: ["image/jpeg", "image/png", "image/webp"],
+        limit: DIRECT_UPLOAD_MAX_FILE_SIZE
+    }),
+    async (req, res) => {
+        if (!ensureB2(res)) return;
+
+        let payload;
+
+        try {
+            payload = verifyReportImageProxyToken(
+                req.query?.token,
+                req.session.user.id
+            );
+        } catch (error) {
+            return res.status(400).json({
+                error: error.message || "Token upload invalid."
+            });
+        }
+
+        const body = req.body;
+
+        if (!Buffer.isBuffer(body) || body.length < 1) {
+            return res.status(400).json({
+                error: "Imaginea nu a fost primită."
+            });
+        }
+
+        if (body.length !== Number(payload.size)) {
+            return res.status(400).json({
+                error: "Dimensiunea imaginii nu corespunde."
+            });
+        }
+
+        const requestType = String(req.get("content-type") || "")
+            .split(";")[0]
+            .trim()
+            .toLowerCase();
+
+        if (requestType !== String(payload.contentType).toLowerCase()) {
+            return res.status(400).json({
+                error: "Tipul imaginii nu corespunde."
+            });
+        }
+
+        try {
+            await b2.send(
+                new PutObjectCommand({
+                    Bucket: B2_BUCKET,
+                    Key: payload.key,
+                    Body: body,
+                    ContentType: payload.contentType,
+                    CacheControl: "private, max-age=3600"
+                })
+            );
+
+            return res.json({
+                success: true,
+                key: payload.key
+            });
+        } catch (error) {
+            console.error("B2 image proxy upload error:", error);
+            return res.status(502).json({
+                error: "Imaginea nu a putut fi salvată în Backblaze B2."
+            });
+        }
+    }
+);
+
+// Browserul cere URL-uri de upload same-origin, apoi trimite fiecare poză
+// prin Worker către B2. Nu este necesar CORS pe bucketul Backblaze.
 app.post(
     "/api/report-upload-urls",
     requireAuth,
@@ -4390,16 +4528,16 @@ app.post(
             const filename = `${Date.now()}-${crypto.randomBytes(8).toString("hex")}.${extension}`;
             const key = `images/${reportId}/${filename}`;
 
-            const uploadUrl = await getSignedUrl(
-                b2,
-                new PutObjectCommand({
-                    Bucket: B2_BUCKET,
-                    Key: key,
-                    ContentType: contentType,
-                    CacheControl: "private, max-age=3600"
-                }),
-                { expiresIn: DIRECT_UPLOAD_TTL_SECONDS }
-            );
+            const imageUploadToken = signReportImageProxyToken({
+                userId: String(req.session.user.id),
+                key,
+                contentType,
+                size: Number(file.size),
+                exp: Date.now() + DIRECT_UPLOAD_TTL_SECONDS * 1000
+            });
+
+            const uploadUrl =
+                `/api/report-image-upload?token=${encodeURIComponent(imageUploadToken)}`;
 
             images.push({
                 filename,
@@ -11548,8 +11686,370 @@ app.delete(
 
 // ======================================================
 // DOCS — SINCRONIZARE CU PERSONALUL DISCORD
-// Creează doar membrii DIICOT care lipsesc.
-// Nu suprascrie câmpurile editate manual.
+// OPTIMIZAT PENTRU CLOUDFLARE WORKERS:
+// - lista Discord se citește paginat o singură dată;
+// - Supabase se citește o singură dată;
+// - toate sloturile DOCS se salvează printr-un singur UPSERT;
+// - nu mai facem UPDATE separat pentru fiecare membru.
+// ======================================================
+
+app.post(
+    "/api/admin/docs/sync",
+    requireDocsEditor,
+    async (req, res) => {
+        if (!ensureSupabase(res)) return;
+        if (!BOT_TOKEN) {
+            return res.status(500).json({
+                error: "Botul Discord nu este configurat."
+            });
+        }
+
+        try {
+            const now = new Date().toISOString();
+            const editorId = String(req.session.user.id);
+            const editorName =
+                req.session.user.displayName ||
+                req.session.user.username ||
+                "Editor DOCS";
+
+            const validNumbers = getAllPoliceDocsCallsigns();
+
+            // 1 singur request Supabase pentru toate rândurile DOCS.
+            let { data: rows, error: rowsError } =
+                await supabase
+                    .from("docs_personnel")
+                    .select("*");
+
+            if (rowsError) throw rowsError;
+            rows = Array.isArray(rows) ? rows : [];
+
+            // Indexăm doar rândurile Poliției.
+            const policeRows = rows.filter(isPoliceDocsRow);
+            const byId = new Map(
+                policeRows.map(row => [String(row.id), row])
+            );
+            const byDiscord = new Map();
+            const byCallsign = new Map();
+
+            for (const row of policeRows) {
+                const discordId = String(row.discord_id || "").trim();
+                if (discordId) byDiscord.set(discordId, row);
+
+                const normalized = normalizePoliceCallsign(row.callsign);
+                if (normalized) {
+                    const list = byCallsign.get(normalized.callsign) || [];
+                    list.push(row);
+                    byCallsign.set(normalized.callsign, list);
+                }
+            }
+
+            // Construim grila completă în memorie.
+            // 000 are două sloturi, restul câte unul.
+            const slotRows = [];
+            let created = 0;
+
+            for (const number of validNumbers) {
+                const callsign = String(number).padStart(3, "0");
+                const rank = getDocsRankForSlot(number);
+                const requiredSlots = number === 0 ? 2 : 1;
+                const existing = [...(byCallsign.get(callsign) || [])];
+
+                for (let index = 0; index < requiredSlots; index++) {
+                    let row = existing[index];
+
+                    if (!row) {
+                        row = {
+                            id: crypto.randomUUID(),
+                            discord_id: null,
+                            rank: rank.name,
+                            rank_level: rank.level,
+                            full_name: "",
+                            internal_id: "",
+                            callsign,
+                            active: false,
+                            last_promotion: null,
+                            joined_at: null,
+                            cert_ftp: false,
+                            cert_radio: false,
+                            cert_ac: false,
+                            cert_hs: false,
+                            cert_air: false,
+                            cert_moto: false,
+                            roles: "",
+                            notes: "",
+                            penalty_points: 0,
+                            discord: "",
+                            position: number,
+                            created_at: now,
+                            updated_at: now,
+                            updated_by_id: editorId,
+                            updated_by_name: editorName
+                        };
+                        created++;
+                    }
+
+                    slotRows.push({ ...row });
+                }
+            }
+
+            const slotById = new Map(
+                slotRows.map(row => [String(row.id), row])
+            );
+
+            // Curățăm ocupanții curenți în MEMORIE.
+            // Câmpurile manuale/certificările rămân pe slot.
+            for (const row of slotRows) {
+                row.discord_id = null;
+                row.full_name = "";
+                row.active = false;
+                row.discord = "";
+                row.updated_at = now;
+                row.updated_by_id = editorId;
+                row.updated_by_name = editorName;
+            }
+
+            // Discord: maxim câteva request-uri paginate (1000 membri/pagină),
+            // nu câte un request pentru fiecare persoană.
+            const members = await getGuildMembersCached({ force: true });
+
+            const policeRoleIds = new Set(
+                DIICOT_ROLES.map(role => String(role.id))
+            );
+
+            const eligibleMembers = (Array.isArray(members) ? members : [])
+                .filter(member => {
+                    if (!member?.user?.id || member?.user?.bot) return false;
+                    const roles = Array.isArray(member.roles)
+                        ? member.roles.map(String)
+                        : [];
+                    return roles.some(id => policeRoleIds.has(id));
+                })
+                .sort((a, b) =>
+                    Number(
+                        GOVERNMENT_RESPONSIBLE_IDS.has(
+                            String(b?.user?.id || "")
+                        )
+                    ) -
+                    Number(
+                        GOVERNMENT_RESPONSIBLE_IDS.has(
+                            String(a?.user?.id || "")
+                        )
+                    )
+                );
+
+            let assigned = 0;
+            let moved = 0;
+            let cleared = 0;
+            const occupiedSlotIds = new Set();
+
+            for (const member of eligibleMembers) {
+                const discordId = String(member.user.id);
+                const roles = Array.isArray(member.roles)
+                    ? member.roles.map(String)
+                    : [];
+
+                const displayName =
+                    member.nick ||
+                    member.user?.global_name ||
+                    member.user?.username ||
+                    "Membru Poliție";
+
+                const bracket =
+                    displayName.match(/\[(?:D-|P-)?(\d{1,3})\]/i);
+                const prefix =
+                    displayName.match(
+                        /^(?:D-|P-)?(\d{1,3})(?:\s*[-|•:]\s*|\s+)/i
+                    );
+
+                const isGovernmentResponsible =
+                    GOVERNMENT_RESPONSIBLE_IDS.has(discordId);
+
+                const oldRow = byDiscord.get(discordId);
+
+                const cs = isGovernmentResponsible
+                    ? normalizePoliceCallsign("000")
+                    : (
+                        normalizePoliceCallsign(
+                            bracket?.[1] ||
+                            prefix?.[1] ||
+                            ""
+                        ) ||
+                        normalizePoliceCallsign(oldRow?.callsign || "")
+                    );
+
+                if (!cs) continue;
+                if (cs.callsign === "000" && !isGovernmentResponsible) {
+                    continue;
+                }
+
+                const candidates = slotRows.filter(row =>
+                    String(row.callsign) === String(cs.callsign) &&
+                    !occupiedSlotIds.has(String(row.id))
+                );
+
+                if (!candidates.length) continue;
+
+                // Dacă utilizatorul era deja pe unul dintre sloturile
+                // callsign-ului, îl păstrăm pe acela; altfel primul liber.
+                let target =
+                    candidates.find(row =>
+                        String(row.id) === String(oldRow?.id || "")
+                    ) ||
+                    candidates[0];
+
+                const source = oldRow || {};
+                const oldCallsign =
+                    normalizePoliceCallsign(source.callsign)?.callsign || "";
+
+                if (oldCallsign && oldCallsign !== cs.callsign) moved++;
+
+                const cleanName = displayName
+                    .replace(/\[(?:D-|P-)?\d{1,3}\]/ig, "")
+                    .replace(
+                        /^(?:D-|P-)?\d{1,3}(?:\s*[-|•:]\s*|\s+)/i,
+                        ""
+                    )
+                    .trim();
+
+                target.discord_id = discordId;
+                target.rank = cs.rank.name;
+                target.rank_level = cs.rank.level;
+                target.full_name =
+                    cleanName ||
+                    member.user?.username ||
+                    "Membru Poliție";
+                target.internal_id =
+                    source.internal_id || target.internal_id || "";
+                target.callsign = cs.callsign;
+                target.active = true;
+                target.last_promotion =
+                    source.last_promotion || target.last_promotion || null;
+                target.joined_at =
+                    source.joined_at ||
+                    target.joined_at ||
+                    member.joined_at ||
+                    now;
+
+                // Păstrăm datele manuale ale persoanei dacă existau.
+                target.cert_ftp = Boolean(
+                    source.cert_ftp ?? target.cert_ftp
+                );
+                target.cert_radio = Boolean(
+                    source.cert_radio ?? target.cert_radio
+                );
+                target.cert_ac = Boolean(
+                    source.cert_ac ?? target.cert_ac
+                );
+                target.cert_hs = Boolean(
+                    source.cert_hs ?? target.cert_hs
+                );
+                target.cert_air = Boolean(
+                    source.cert_air ?? target.cert_air
+                );
+                target.cert_moto = Boolean(
+                    source.cert_moto ?? target.cert_moto
+                );
+                target.roles = source.roles || target.roles || "";
+                target.notes = source.notes || target.notes || "";
+                target.penalty_points =
+                    Number(
+                        source.penalty_points ??
+                        target.penalty_points ??
+                        0
+                    );
+                target.discord =
+                    member.user?.username
+                        ? `@${member.user.username}`
+                        : discordId;
+                target.position = cs.number;
+                target.updated_at = now;
+                target.updated_by_id = editorId;
+                target.updated_by_name = editorName;
+
+                occupiedSlotIds.add(String(target.id));
+                assigned++;
+            }
+
+            // Numărăm persoanele vechi care nu mai sunt în Poliție / nu mai
+            // au un callsign valid și care au fost eliberate din grilă.
+            for (const oldRow of policeRows) {
+                const oldDiscordId = String(oldRow.discord_id || "");
+                if (!oldDiscordId) continue;
+
+                const stillPresent = slotRows.some(row =>
+                    String(row.discord_id || "") === oldDiscordId
+                );
+
+                if (!stillPresent) cleared++;
+            }
+
+            // IMPORTANT: un singur subrequest Supabase pentru toate sloturile.
+            const payload = slotRows.map(row => ({
+                id: row.id,
+                discord_id: row.discord_id || null,
+                rank: row.rank,
+                rank_level: Number(row.rank_level || 0),
+                full_name: row.full_name || "",
+                internal_id: row.internal_id || "",
+                callsign: row.callsign,
+                active: Boolean(row.active),
+                last_promotion: row.last_promotion || null,
+                joined_at: row.joined_at || null,
+                cert_ftp: Boolean(row.cert_ftp),
+                cert_radio: Boolean(row.cert_radio),
+                cert_ac: Boolean(row.cert_ac),
+                cert_hs: Boolean(row.cert_hs),
+                cert_air: Boolean(row.cert_air),
+                cert_moto: Boolean(row.cert_moto),
+                roles: row.roles || "",
+                notes: row.notes || "",
+                penalty_points: Number(row.penalty_points || 0),
+                discord: row.discord || "",
+                position: Number(row.position || 0),
+                created_at: row.created_at || now,
+                updated_at: now,
+                updated_by_id: editorId,
+                updated_by_name: editorName
+            }));
+
+            const { error: saveError } =
+                await supabase
+                    .from("docs_personnel")
+                    .upsert(payload, {
+                        onConflict: "id"
+                    });
+
+            if (saveError) throw saveError;
+
+            return res.json({
+                success: true,
+                created,
+                assigned,
+                moved,
+                cleared,
+                totalSlots: slotRows.length,
+                discordMembersRead: eligibleMembers.length,
+                optimized: true
+            });
+        }
+        catch (error) {
+            console.error(
+                "DOCS Sync Error:",
+                error?.response?.data ||
+                error?.message ||
+                error
+            );
+
+            return res.status(500).json({
+                error:
+                    `Personalul DOCS Poliție nu a putut fi sincronizat: ` +
+                    `${error?.message || "eroare necunoscută"}`
+            });
+        }
+    }
+);
+
+
 // ======================================================
 
 app.post(
