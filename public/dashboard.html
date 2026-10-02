@@ -16981,6 +16981,30 @@ body:after{
 
     let currentUser = null;
 
+    // OPTIMIZARE CLOUDFLARE: unele componente cer același GET /api în același timp.
+    // Dedupe doar request-urile aflate simultan în zbor; NU păstrăm date stale după mutații.
+    (() => {
+        const nativeFetch = window.fetch.bind(window);
+        const inflight = new Map();
+        window.fetch = function(input, init = {}) {
+            try {
+                const url = typeof input === "string" ? input : input?.url;
+                const method = String(init?.method || (typeof input !== "string" ? input?.method : "GET") || "GET").toUpperCase();
+                if (method === "GET" && typeof url === "string" && url.startsWith("/api/")) {
+                    const key = url + "|" + String(init?.credentials || "");
+                    if (inflight.has(key)) return inflight.get(key).then(r => r.clone());
+                    const p = nativeFetch(input, init).then(r => {
+                        setTimeout(() => inflight.delete(key), 0);
+                        return r;
+                    }, e => { inflight.delete(key); throw e; });
+                    inflight.set(key, p);
+                    return p.then(r => r.clone());
+                }
+            } catch (_) {}
+            return nativeFetch(input, init);
+        };
+    })();
+
     let discordRoles = [];
 
     async function loadDiscordRoles() {
@@ -34119,8 +34143,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     let profileDutyRefreshBusy = false;
     setInterval(async () => {
         const card = document.getElementById("profile-up-eligibility");
-        const profileSection = document.getElementById("profile-section");
-        if (!card || !profileSection || profileDutyRefreshBusy) return;
+        const profileSection = document.getElementById("profile");
+        if (!card || !profileSection || profileDutyRefreshBusy || document.hidden) return;
 
         const style = window.getComputedStyle(profileSection);
         if (style.display === "none" || style.visibility === "hidden") return;
@@ -34153,7 +34177,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         } finally {
             profileDutyRefreshBusy = false;
         }
-    }, 15000);
+    }, 60000);
 </script>
 
 <script>
@@ -34404,7 +34428,11 @@ document.addEventListener('click', function(e){
     }
     window.loadPoliceLogOverview=loadPoliceLogOverview;
     if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",loadPoliceLogOverview); else loadPoliceLogOverview();
-    setInterval(loadPoliceLogOverview, 60000);
+    setInterval(() => {
+        if (document.hidden) return;
+        const overview = document.getElementById("overview");
+        if (overview && overview.classList.contains("active")) loadPoliceLogOverview();
+    }, 120000);
 })();
 </script>
 </body>
