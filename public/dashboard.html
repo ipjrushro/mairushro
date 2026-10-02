@@ -32694,12 +32694,11 @@ const query =
                 return;
             }
 
-            const confirmation = prompt(
-                'Pentru confirmare scrie exact: STERGE RAPOARTELE'
-            );
-
-            if (confirmation !== "STERGE RAPOARTELE") {
-                alert("Ștergerea a fost anulată.");
+            // Confirmare finală fără prompt text.
+            // Serverul primește în continuare cheia de confirmare necesară.
+            if (!confirm(
+                "CONFIRMARE FINALĂ: șterg definitiv toate rapoartele și imaginile lor din Backblaze B2?"
+            )) {
                 return;
             }
 
