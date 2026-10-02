@@ -11222,260 +11222,200 @@ app.post(
 
 app.patch(
     "/api/admin/docs/bulk",
-
     requireDocsEditor,
-
-    async (
-        req,
-        res
-    ) => {
-
-        if (
-            !ensureSupabase(res)
-        ) {
-            return;
-        }
+    async (req, res) => {
+        if (!ensureSupabase(res)) return;
 
         try {
-
-            const rows =
-                Array.isArray(
-                    req.body?.rows
-                )
-                    ? req.body.rows
-                    : [];
+            const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
 
             if (!rows.length) {
-
-                return res
-                    .status(400)
-                    .json({
-                        error:
-                            "Nu există modificări de salvat."
-                    });
+                return res.status(400).json({
+                    error: "Nu există modificări de salvat."
+                });
             }
 
-            if (
-                rows.length > 150
-            ) {
-
-                return res
-                    .status(400)
-                    .json({
-                        error:
-                            "Prea multe rânduri într-o singură salvare."
-                    });
+            if (rows.length > 150) {
+                return res.status(400).json({
+                    error: "Prea multe rânduri într-o singură salvare."
+                });
             }
 
-            const now =
-                new Date()
-                    .toISOString();
+            const now = new Date().toISOString();
+            const editorId = String(req.session.user.id);
+            const editorName =
+                req.session.user.displayName ||
+                req.session.user.username ||
+                "Editor DOCS";
 
-            let updated =
-                0;
+            // IMPORTANT pentru Cloudflare Workers:
+            // înainte făceam câte un UPDATE Supabase pentru fiecare rând.
+            // 60-100 rânduri => 60-100+ subrequest-uri și Worker-ul atingea limita.
+            // Acum: 1 SELECT + 1 UPSERT + 1 SELECT final.
+            const ids = [
+                ...new Set(
+                    rows
+                        .map(item => String(item?.id || "").trim())
+                        .filter(Boolean)
+                )
+            ];
 
-            for (
-                const item
-                of rows
-            ) {
-
-                const id =
-                    String(
-                        item.id ||
-                        ""
-                    ).trim();
-
-                if (!id) {
-                    continue;
-                }
-
-                const update = {
-                    full_name:
-                        String(
-                            item.fullName ||
-                            ""
-                        )
-                            .trim()
-                            .slice(
-                                0,
-                                120
-                            ),
-
-                    internal_id:
-                        String(
-                            item.internalId ||
-                            ""
-                        )
-                            .trim()
-                            .slice(
-                                0,
-                                40
-                            ),
-
-                    callsign:
-                        String(
-                            item.callsign ||
-                            ""
-                        )
-                            .trim()
-                            .slice(
-                                0,
-                                20
-                            ),
-
-                    active:
-                        Boolean(
-                            item.active
-                        ),
-
-                    last_promotion:
-                        item.lastPromotion ||
-                        null,
-
-                    joined_at:
-                        item.joinedAt ||
-                        null,
-
-                    cert_ftp:
-                        Boolean(
-                            item.certFtp
-                        ),
-
-                    cert_radio:
-                        Boolean(
-                            item.certRadio
-                        ),
-
-                    cert_air:
-                        Boolean(
-                            item.certAir
-                        ),
-
-                    cert_ac: Boolean(item.certAc),
-                    cert_hs: Boolean(item.certHs),
-                    cert_moto: Boolean(item.certMoto),
-
-                    roles:
-                        String(
-                            item.roles ||
-                            ""
-                        )
-                            .trim()
-                            .slice(
-                                0,
-                                160
-                            ),
-
-                    discord:
-                        String(
-                            item.discord ||
-                            ""
-                        )
-                            .trim()
-                            .slice(
-                                0,
-                                120
-                            ),
-
-                    updated_at:
-                        now,
-
-                    updated_by_id:
-                        String(
-                            req.session.user.id
-                        ),
-
-                    updated_by_name:
-                        req.session.user.displayName ||
-                        req.session.user.username
-                };
-
-                const {
-                    error
-                } =
-                    await supabase
-                        .from(
-                            "docs_personnel"
-                        )
-                        .update(
-                            update
-                        )
-                        .eq(
-                            "id",
-                            id
-                        );
-
-                if (error) {
-                    throw error;
-                }
-
-                updated++;
+            if (!ids.length) {
+                return res.status(400).json({
+                    error: "Nu există rânduri DOCS valide de salvat."
+                });
             }
 
             const {
-                data:
-                    refreshedRows,
+                data: existingRows,
+                error: existingError
+            } = await supabase
+                .from("docs_personnel")
+                .select("*")
+                .in("id", ids);
 
-                error:
-                    refreshError
-            } =
-                await supabase
-                    .from(
-                        "docs_personnel"
-                    )
-                    .select(
-                        "*"
-                    )
-                    .order(
-                        "position",
-                        {
-                            ascending:
-                                true
-                        }
-                    )
-                    .order(
-                        "rank_level",
-                        {
-                            ascending:
-                                false
-                        }
-                    );
+            if (existingError) throw existingError;
 
-            if (refreshError) {
-                throw refreshError;
+            const existingById = new Map(
+                (existingRows || []).map(row => [String(row.id), row])
+            );
+
+            const payload = [];
+
+            for (const item of rows) {
+                const id = String(item?.id || "").trim();
+                if (!id) continue;
+
+                const existing = existingById.get(id);
+                if (!existing) continue;
+
+                // Nu permitem ca bulk-save să mute un rând pe alt discord_id
+                // sau să șteargă accidental câmpuri interne. Păstrăm rândul
+                // existent și suprascriem doar câmpurile editabile din tabel.
+                payload.push({
+                    ...existing,
+                    id,
+
+                    full_name: String(
+                        item.fullName ?? existing.full_name ?? ""
+                    ).trim().slice(0, 120),
+
+                    internal_id: String(
+                        item.internalId ?? existing.internal_id ?? ""
+                    ).trim().slice(0, 40),
+
+                    callsign: String(
+                        item.callsign ?? existing.callsign ?? ""
+                    ).trim().slice(0, 20),
+
+                    active:
+                        item.active === undefined
+                            ? Boolean(existing.active)
+                            : Boolean(item.active),
+
+                    last_promotion:
+                        item.lastPromotion === undefined
+                            ? (existing.last_promotion || null)
+                            : (item.lastPromotion || null),
+
+                    joined_at:
+                        item.joinedAt === undefined
+                            ? (existing.joined_at || null)
+                            : (item.joinedAt || null),
+
+                    cert_ftp:
+                        item.certFtp === undefined
+                            ? Boolean(existing.cert_ftp)
+                            : Boolean(item.certFtp),
+
+                    cert_radio:
+                        item.certRadio === undefined
+                            ? Boolean(existing.cert_radio)
+                            : Boolean(item.certRadio),
+
+                    cert_air:
+                        item.certAir === undefined
+                            ? Boolean(existing.cert_air)
+                            : Boolean(item.certAir),
+
+                    cert_ac:
+                        item.certAc === undefined
+                            ? Boolean(existing.cert_ac)
+                            : Boolean(item.certAc),
+
+                    cert_hs:
+                        item.certHs === undefined
+                            ? Boolean(existing.cert_hs)
+                            : Boolean(item.certHs),
+
+                    cert_moto:
+                        item.certMoto === undefined
+                            ? Boolean(existing.cert_moto)
+                            : Boolean(item.certMoto),
+
+                    roles: String(
+                        item.roles ?? existing.roles ?? ""
+                    ).trim().slice(0, 160),
+
+                    discord: String(
+                        item.discord ?? existing.discord ?? ""
+                    ).trim().slice(0, 120),
+
+                    updated_at: now,
+                    updated_by_id: editorId,
+                    updated_by_name: editorName
+                });
             }
 
-            res.json({
-                success:
-                    true,
+            if (!payload.length) {
+                return res.status(404).json({
+                    error: "Rândurile DOCS trimise nu mai există în baza de date."
+                });
+            }
 
-                updated,
+            const {
+                error: saveError
+            } = await supabase
+                .from("docs_personnel")
+                .upsert(payload, {
+                    onConflict: "id"
+                });
 
-                rows:
-                    (
-                        refreshedRows ||
-                        []
-                    )
-                        .map(
-                            mapDocsRow
-                        )
+            if (saveError) throw saveError;
+
+            const {
+                data: refreshedRows,
+                error: refreshError
+            } = await supabase
+                .from("docs_personnel")
+                .select("*")
+                .order("position", { ascending: true })
+                .order("rank_level", { ascending: false });
+
+            if (refreshError) throw refreshError;
+
+            return res.json({
+                success: true,
+                updated: payload.length,
+                optimized: true,
+                rows: (refreshedRows || [])
+                    .filter(isPoliceDocsRow)
+                    .map(mapDocsRow)
             });
-
         }
-
         catch (error) {
-
             console.error(
                 "DOCS Bulk Update Error:",
+                error?.response?.data ||
+                error?.message ||
                 error
             );
 
-            res
-                .status(500)
-                .json({
-                    error:
-                        "Modificările DOCS nu au putut fi salvate."
-                });
+            return res.status(500).json({
+                error:
+                    "Modificările DOCS nu au putut fi salvate: " +
+                    String(error?.message || "eroare necunoscută")
+            });
         }
     }
 );
