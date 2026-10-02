@@ -4331,6 +4331,120 @@ function verifyDirectUploadManifest(token, userId) {
     return payload;
 }
 
+
+// Cloudflare Workers: B2 Native API pentru metadata rapoartelor.
+// Evită AWS SDK și evită fetch către propriul Worker (self-fetch), care poate bloca requestul.
+async function b2NativeAuthorizeForReports() {
+    const id = String(B2_KEY_ID || "");
+    const key = String(B2_APPLICATION_KEY || "");
+    if (!id || !key) throw new Error("Lipsesc B2_KEY_ID/B2_APPLICATION_KEY.");
+
+    const basic = Buffer.from(`${id}:${key}`, "utf8").toString("base64");
+    const response = await fetch(
+        "https://api.backblazeb2.com/b2api/v3/b2_authorize_account",
+        { headers: { Authorization: `Basic ${basic}` } }
+    );
+    const text = await response.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch {}
+    if (!response.ok || !data) {
+        throw new Error(`B2 authorize HTTP ${response.status}: ${text.slice(0, 250)}`);
+    }
+    return data;
+}
+
+function b2NativeStorageApiForReports(auth) {
+    return auth?.apiInfo?.storageApi || auth?.apiInfo?.storage_api || null;
+}
+
+async function b2NativeBucketIdForReports(auth) {
+    const storage = b2NativeStorageApiForReports(auth);
+    const allowed = storage?.allowed || auth?.allowed || {};
+    if (allowed.bucketId || allowed.bucket_id) {
+        return String(allowed.bucketId || allowed.bucket_id);
+    }
+
+    const apiUrl = storage?.apiUrl || storage?.api_url;
+    const accountId = auth?.accountId || auth?.account_id;
+    const token = auth?.authorizationToken || auth?.authorization_token;
+    if (!apiUrl || !accountId || !token) throw new Error("Răspuns B2 authorize incomplet.");
+
+    const response = await fetch(`${apiUrl}/b2api/v3/b2_list_buckets`, {
+        method: "POST",
+        headers: {
+            Authorization: token,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            accountId,
+            bucketName: String(B2_BUCKET || "")
+        })
+    });
+
+    const text = await response.text();
+    let data = null;
+    try { data = JSON.parse(text); } catch {}
+    if (!response.ok || !data) {
+        throw new Error(`B2 list buckets HTTP ${response.status}: ${text.slice(0, 250)}`);
+    }
+
+    const found = (data.buckets || []).find(
+        item => String(item.bucketName || "") === String(B2_BUCKET || "")
+    );
+    if (!found?.bucketId) throw new Error(`Bucketul ${B2_BUCKET || ""} nu a fost găsit.`);
+    return String(found.bucketId);
+}
+
+async function uploadReportMetadataNativeB2(objectKey, report) {
+    const auth = await b2NativeAuthorizeForReports();
+    const storage = b2NativeStorageApiForReports(auth);
+    const apiUrl = storage?.apiUrl || storage?.api_url;
+    const authToken = auth?.authorizationToken || auth?.authorization_token;
+    if (!apiUrl || !authToken) throw new Error("Răspuns B2 authorize incomplet.");
+
+    const bucketId = await b2NativeBucketIdForReports(auth);
+
+    const uploadUrlResponse = await fetch(`${apiUrl}/b2api/v3/b2_get_upload_url`, {
+        method: "POST",
+        headers: {
+            Authorization: authToken,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ bucketId })
+    });
+
+    const uploadUrlText = await uploadUrlResponse.text();
+    let target = null;
+    try { target = JSON.parse(uploadUrlText); } catch {}
+    if (!uploadUrlResponse.ok || !target?.uploadUrl || !target?.authorizationToken) {
+        throw new Error(
+            `B2 get upload URL HTTP ${uploadUrlResponse.status}: ${uploadUrlText.slice(0, 250)}`
+        );
+    }
+
+    const body = Buffer.from(JSON.stringify(report, null, 2), "utf8");
+    const sha1 = crypto.createHash("sha1").update(body).digest("hex");
+
+    const uploadResponse = await fetch(target.uploadUrl, {
+        method: "POST",
+        headers: {
+            Authorization: target.authorizationToken,
+            "X-Bz-File-Name": encodeURIComponent(String(objectKey)),
+            "Content-Type": "application/json",
+            "Content-Length": String(body.length),
+            "X-Bz-Content-Sha1": sha1
+        },
+        body
+    });
+
+    const uploadText = await uploadResponse.text();
+    if (!uploadResponse.ok) {
+        throw new Error(`B2 metadata upload HTTP ${uploadResponse.status}: ${uploadText.slice(0, 350)}`);
+    }
+
+    return true;
+}
+
 // Token intern pentru salvarea JSON-ului raportului prin Worker Native B2.
 // Separat de tokenul imaginilor, dar folosește aceeași cheie HMAC existentă.
 function signReportMetadataWorkerToken(payload) {
@@ -5275,51 +5389,21 @@ app.post(
                     now
             };
 
-            // Cloudflare Workers: salvarea metadata JSON nu mai trece prin AWS SDK.
-            // worker.mjs interceptează această rută internă și scrie în B2 prin Native API.
+            // În Workers folosim direct Backblaze Native API.
+            // Nu facem self-fetch către același Worker și nu folosim AWS SDK aici.
             if (process.env.CLOUDFLARE_WORKERS === "1") {
-                const internalToken = signReportMetadataWorkerToken({
-                    userId: authorId,
-                    key: metadataKey,
-                    exp: Date.now() + DIRECT_UPLOAD_TTL_SECONDS * 1000
-                });
-
-                const origin =
-                    `${req.protocol}://${req.get("host")}`;
-
-                const metadataResponse = await fetch(
-                    `${origin}/api/internal/report-metadata-upload?token=${encodeURIComponent(internalToken)}`,
-                    {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json; charset=utf-8"
-                        },
-                        body: JSON.stringify(report)
-                    }
+                await uploadReportMetadataNativeB2(
+                    metadataKey,
+                    report
                 );
-
-                const metadataText = await metadataResponse.text();
-
-                if (!metadataResponse.ok) {
-                    throw new Error(
-                        `B2 metadata upload HTTP ${metadataResponse.status}: ${metadataText.slice(0, 350)}`
-                    );
-                }
             } else {
                 await b2.send(
                     new PutObjectCommand({
                         Bucket: B2_BUCKET,
                         Key: metadataKey,
-                        Body:
-                            JSON.stringify(
-                                report,
-                                null,
-                                2
-                            ),
-                        ContentType:
-                            "application/json; charset=utf-8",
-                        CacheControl:
-                            "no-store"
+                        Body: JSON.stringify(report, null, 2),
+                        ContentType: "application/json; charset=utf-8",
+                        CacheControl: "no-store"
                     })
                 );
             }
@@ -5386,16 +5470,20 @@ app.post(
                 metadataKey
             ].filter(Boolean);
 
-            try {
-                await deleteB2Keys(
-                    cleanupKeys
-                );
-            }
-            catch (cleanupError) {
-                console.error(
-                    "B2 report cleanup error:",
-                    cleanupError.message
-                );
+            // În Cloudflare Workers nu apelăm deleteB2Keys (AWS SDK) în catch:
+            // dacă B2 a dat eroare, cleanup-ul AWS putea bloca Worker-ul și masca eroarea reală.
+            if (process.env.CLOUDFLARE_WORKERS !== "1") {
+                try {
+                    await deleteB2Keys(
+                        cleanupKeys
+                    );
+                }
+                catch (cleanupError) {
+                    console.error(
+                        "B2 report cleanup error:",
+                        cleanupError.message
+                    );
+                }
             }
 
             return res.status(500).json({
