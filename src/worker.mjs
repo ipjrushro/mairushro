@@ -179,6 +179,155 @@ async function metadataUpload(request, env, url) {
   }
 }
 
+
+// ======================================================
+// BACKBLAZE B2 — ȘTERGERE BULK RAPOARTE (S3 + SigV4 nativ)
+// Evită AWS SDK în Cloudflare Workers și șterge definitiv toate
+// versiunile de sub reports/ și images/ în loturi de până la 1000.
+// ======================================================
+function hex(bytes) {
+  return Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function sha256(value) {
+  const bytes = typeof value === "string" ? encoder.encode(value) : value;
+  return hex(await crypto.subtle.digest("SHA-256", bytes));
+}
+
+async function hmac(key, value) {
+  const raw = typeof key === "string" ? encoder.encode(key) : key;
+  const k = await crypto.subtle.importKey("raw", raw, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", k, encoder.encode(value)));
+}
+
+function awsEncode(value) {
+  return encodeURIComponent(String(value)).replace(/[!'()*]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
+}
+
+function xmlDecode(value) {
+  return String(value || "")
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+}
+
+function xmlEscape(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+}
+
+async function signedS3Fetch(env, method, canonicalQuery, body = "") {
+  const endpoint = new URL(String(env.B2_ENDPOINT || ""));
+  const bucket = String(env.B2_BUCKET || "");
+  const accessKey = String(env.B2_KEY_ID || "");
+  const secret = String(env.B2_APPLICATION_KEY || "");
+  const region = String(env.B2_REGION || "");
+  if (!bucket || !accessKey || !secret || !region || !endpoint.host) throw new Error("Configurația B2_* este incompletă.");
+
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const dateStamp = amzDate.slice(0, 8);
+  const canonicalUri = `/${awsEncode(bucket)}/`;
+  const payloadHash = await sha256(body);
+  const canonicalHeaders = `host:${endpoint.host}\nx-amz-content-sha256:${payloadHash}\nx-amz-date:${amzDate}\n`;
+  const signedHeaders = "host;x-amz-content-sha256;x-amz-date";
+  const canonicalRequest = `${method}\n${canonicalUri}\n${canonicalQuery}\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
+  const scope = `${dateStamp}/${region}/s3/aws4_request`;
+  const stringToSign = `AWS4-HMAC-SHA256\n${amzDate}\n${scope}\n${await sha256(canonicalRequest)}`;
+
+  const kDate = await hmac(`AWS4${secret}`, dateStamp);
+  const kRegion = await hmac(kDate, region);
+  const kService = await hmac(kRegion, "s3");
+  const kSigning = await hmac(kService, "aws4_request");
+  const signature = hex(await (async () => {
+    const k = await crypto.subtle.importKey("raw", kSigning, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    return crypto.subtle.sign("HMAC", k, encoder.encode(stringToSign));
+  })());
+
+  const auth = `AWS4-HMAC-SHA256 Credential=${accessKey}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+  const url = `${endpoint.origin}${canonicalUri}${canonicalQuery ? `?${canonicalQuery}` : ""}`;
+  const headers = {
+    Authorization: auth,
+    "x-amz-date": amzDate,
+    "x-amz-content-sha256": payloadHash
+  };
+  if (body) headers["Content-Type"] = "application/xml";
+  return fetch(url, { method, headers, body: body || undefined });
+}
+
+function xmlTag(block, tag) {
+  const m = String(block || "").match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`));
+  return m ? xmlDecode(m[1]) : "";
+}
+
+async function listS3Versions(env, prefix) {
+  const all = [];
+  let keyMarker = "";
+  let versionMarker = "";
+  let pages = 0;
+  do {
+    pages += 1;
+    if (pages > 100) throw new Error(`Prea multe pagini B2 pentru ${prefix}.`);
+    const q = [
+      `prefix=${awsEncode(prefix)}`,
+      ...(keyMarker ? [`key-marker=${awsEncode(keyMarker)}`] : []),
+      ...(versionMarker ? [`version-id-marker=${awsEncode(versionMarker)}`] : []),
+      "versions="
+    ].sort().join("&");
+    const r = await signedS3Fetch(env, "GET", q);
+    const xml = await r.text();
+    if (!r.ok) throw new Error(`B2 list versions HTTP ${r.status}: ${xml.slice(0, 350)}`);
+
+    for (const kind of ["Version", "DeleteMarker"]) {
+      const re = new RegExp(`<${kind}>([\\s\\S]*?)<\\/${kind}>`, "g");
+      let m;
+      while ((m = re.exec(xml))) {
+        const Key = xmlTag(m[1], "Key");
+        const VersionId = xmlTag(m[1], "VersionId");
+        if (Key && VersionId && Key.startsWith(prefix)) all.push({ Key, VersionId });
+      }
+    }
+    const truncated = /<IsTruncated>true<\/IsTruncated>/i.test(xml);
+    if (!truncated) break;
+    keyMarker = xmlTag(xml, "NextKeyMarker");
+    versionMarker = xmlTag(xml, "NextVersionIdMarker");
+    if (!keyMarker) throw new Error("B2 a returnat listă trunchiată fără NextKeyMarker.");
+  } while (true);
+  return all;
+}
+
+async function deleteS3VersionBatch(env, objects) {
+  if (!objects.length) return;
+  const body = `<Delete>${objects.map(o => `<Object><Key>${xmlEscape(o.Key)}</Key><VersionId>${xmlEscape(o.VersionId)}</VersionId></Object>`).join("")}<Quiet>true</Quiet></Delete>`;
+  const r = await signedS3Fetch(env, "POST", "delete=", body);
+  const text = await r.text();
+  if (!r.ok || /<Error>/i.test(text)) throw new Error(`B2 bulk delete HTTP ${r.status}: ${text.slice(0, 500)}`);
+}
+
+async function deleteAllReportStorage(env) {
+  const [reports, images] = await Promise.all([
+    listS3Versions(env, "reports/"),
+    listS3Versions(env, "images/")
+  ]);
+  const objects = [...images, ...reports];
+  for (let i = 0; i < objects.length; i += 1000) {
+    await deleteS3VersionBatch(env, objects.slice(i, i + 1000));
+  }
+
+  // Verificare finală: nu declarăm succes dacă mai există versiuni.
+  const [remainingReports, remainingImages] = await Promise.all([
+    listS3Versions(env, "reports/"),
+    listS3Versions(env, "images/")
+  ]);
+  if (remainingReports.length || remainingImages.length) {
+    throw new Error(`Au rămas obiecte în B2: reports=${remainingReports.length}, images=${remainingImages.length}`);
+  }
+  return {
+    deletedReports: reports.filter(x => x.Key.endsWith(".json")).length,
+    deletedImages: images.length
+  };
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -192,6 +341,30 @@ export default {
 
     try {
       const response = await handler.fetch(request, env, ctx);
+
+      // Express validează sesiunea de admin + textul de confirmare. Abia după
+      // aceea executăm ștergerea bulk nativă, ca să nu expunem un endpoint B2
+      // care poate fi apelat fără autentificare.
+      if (request.method === "DELETE" && url.pathname === "/api/admin/reports/all" && response.ok) {
+        let gate = null;
+        try { gate = await response.clone().json(); } catch {}
+        if (gate?.nativeB2Delete === true) {
+          try {
+            const result = await deleteAllReportStorage(env);
+            return Response.json({
+              success: true,
+              ...result,
+              message: "Toate rapoartele și imaginile lor au fost șterse definitiv din Backblaze B2."
+            });
+          } catch (e) {
+            return Response.json({
+              error: "Rapoartele nu au putut fi șterse complet din Backblaze B2.",
+              details: String(e?.message || e)
+            }, { status: 500 });
+          }
+        }
+      }
+
       if (url.pathname.startsWith("/api/")) {
         const ct = String(response.headers.get("content-type") || "").toLowerCase();
         if (ct.includes("text/html")) {
