@@ -5536,6 +5536,49 @@ app.get(
 
 
 // ======================================================
+// SINCRONIZARE / NUMEROTARE RAPOARTE - ADMIN
+// Numerotarea este determinată cronologic: cel mai vechi raport = #1.
+// Rapoartele noi primesc automat următorul număr la următoarea sincronizare.
+// ======================================================
+async function getNumberedAdminReports({ force = false } = {}) {
+    let reports;
+
+    if (force) {
+        reports = await loadAllB2ReportsFromStorage();
+
+        b2ReportCache = {
+            reports,
+            loadedAt: Date.now()
+        };
+    } else {
+        reports = await listB2Reports();
+    }
+
+    // Pentru numerotare folosim ordinea cronologică ascendentă.
+    // Nu modificăm ID-ul real al raportului și nu rescriem fișierele B2.
+    const chronological = [...reports].sort((a, b) => {
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+
+        if (timeA !== timeB) return timeA - timeB;
+
+        return String(a.id || "").localeCompare(String(b.id || ""));
+    });
+
+    const numberById = new Map(
+        chronological.map((report, index) => [
+            String(report.id),
+            index + 1
+        ])
+    );
+
+    return reports.map(report => ({
+        ...report,
+        reportNumber: numberById.get(String(report.id)) || null
+    }));
+}
+
+// ======================================================
 // TOATE RAPOARTELE - ADMIN
 // ======================================================
 
@@ -5549,7 +5592,7 @@ app.get(
 
         try {
             const reports =
-                await listB2Reports();
+                await getNumberedAdminReports();
 
             const reportsForClient =
                 await withDirectB2ImageUrlsMany(reports);
@@ -16405,3 +16448,48 @@ module.exports = {
     syncApprovedLeaveDiscordRoles,
     initMeetingAttendanceScheduler
 };
+// ======================================================
+// SINCRONIZEAZĂ RAPOARTE - ADMIN
+// Reîncarcă rapoartele din B2 și reconstruiește numerotarea.
+// ======================================================
+app.post(
+    "/api/admin/reports/sync",
+    requireAdmin,
+    async (req, res) => {
+        if (!ensureB2(res)) {
+            return;
+        }
+
+        try {
+            const reports =
+                await getNumberedAdminReports({ force: true });
+
+            const reportsForClient =
+                await withDirectB2ImageUrlsMany(reports);
+
+            return res.json({
+                success: true,
+                total: reports.length,
+                reports: reportsForClient,
+                message:
+                    reports.length
+                        ? `Au fost sincronizate și renumerotate ${reports.length} rapoarte.`
+                        : "Nu există rapoarte de sincronizat."
+            });
+        }
+        catch (error) {
+            console.error(
+                "Admin Reports Sync Error:",
+                error
+            );
+
+            return res.status(500).json({
+                error:
+                    "Rapoartele nu au putut fi sincronizate."
+            });
+        }
+    }
+);
+
+
+
