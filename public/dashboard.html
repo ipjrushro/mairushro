@@ -14887,10 +14887,22 @@ body:after{
 
                         <button
                             type="button"
-                            id="admin-delete-all-reports"
+                            id="admin-sync-reports"
                             class="primary-btn"
                             style="
                                 margin-top:14px;
+                                width:100%;
+                            "
+                        >
+                            🔄 SINCRONIZEAZĂ RAPOARTE
+                        </button>
+
+                        <button
+                            type="button"
+                            id="admin-delete-all-reports"
+                            class="primary-btn"
+                            style="
+                                margin-top:10px;
                                 width:100%;
                                 border-color:rgba(220,70,70,.45);
                                 background:rgba(130,20,20,.18);
@@ -23889,6 +23901,18 @@ const query =
 
 
                     <div>
+                        ${
+                            admin && report.reportNumber
+                                ? `
+                                    <span
+                                        class="report-type"
+                                        style="margin-bottom:6px;"
+                                    >
+                                        RAPORT #${escapeHTML(String(report.reportNumber))}
+                                    </span>
+                                `
+                                : ""
+                        }
 
                         <span class="report-type">
                             ${escapeHTML(
@@ -24092,6 +24116,115 @@ const query =
     /* =========================================================
        ADMIN REPORTS
     ========================================================== */
+
+    async function syncAdminReports() {
+
+        const button =
+            document.getElementById(
+                "admin-sync-reports"
+            );
+
+        if (button) {
+            button.disabled = true;
+            button.textContent = "🔄 SE SINCRONIZEAZĂ...";
+        }
+
+        try {
+            const response =
+                await fetch(
+                    "/api/admin/reports/sync",
+                    {
+                        method: "POST",
+                        credentials: "include",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        cache: "no-store"
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data.error ||
+                    "Rapoartele nu au putut fi sincronizate."
+                );
+            }
+
+            const reports =
+                data.reports ||
+                [];
+
+            const total =
+                document.getElementById(
+                    "admin-total"
+                );
+
+            if (total) {
+                total.textContent =
+                    reports.length;
+            }
+
+            renderReports(
+                "admin-reports-container",
+                reports,
+                true
+            );
+
+            if (typeof showToast === "function") {
+                showToast(
+                    data.message ||
+                    "Rapoartele au fost sincronizate.",
+                    "success"
+                );
+            } else {
+                alert(
+                    data.message ||
+                    "Rapoartele au fost sincronizate."
+                );
+            }
+        }
+        catch (error) {
+            console.error(
+                "syncAdminReports:",
+                error
+            );
+
+            if (typeof showToast === "function") {
+                showToast(
+                    error.message ||
+                    "Rapoartele nu au putut fi sincronizate.",
+                    "error"
+                );
+            } else {
+                alert(
+                    error.message ||
+                    "Rapoartele nu au putut fi sincronizate."
+                );
+            }
+        }
+        finally {
+            if (button) {
+                button.disabled = false;
+                button.textContent =
+                    "🔄 SINCRONIZEAZĂ RAPOARTE";
+            }
+        }
+    }
+
+    const adminSyncReportsButton =
+        document.getElementById(
+            "admin-sync-reports"
+        );
+
+    if (adminSyncReportsButton) {
+        adminSyncReportsButton.addEventListener(
+            "click",
+            syncAdminReports
+        );
+    }
 
     async function loadAdminReports() {
 
