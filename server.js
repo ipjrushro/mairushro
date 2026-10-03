@@ -11980,9 +11980,25 @@ app.post(
             // Discord: citim toți membrii și păstrăm EXCLUSIV persoanele
             // care au cel puțin unul dintre gradele Poliției configurate.
             const members = await getGuildMembersCached({ force: true });
-            const policeRoleIds = new Set(
-                DIICOT_ROLES.map(role => String(role.id))
-            );
+            // IMPORTANT: DOCS Poliție folosește EXCLUSIV rolurile Poliției de mai jos.
+            // Nu folosim listele DIICOT / tester / alte departamente pentru eligibilitate.
+            const policeRoleIds = new Set([
+                "1528758226437275791", // Responsabil Guvernamentale
+                "1528758226437275788", // Chestor general
+                "1528758226437275787", // Chestor principal
+                "1528758226437275786", // Chestor secundar
+                "1528758226428891368", // Comisar sef
+                "1528758226428891366", // Comisar
+                "1528758226428891365", // Sub comisar
+                "1528758226428891364", // Inspector principal
+                "1528758226428891363", // Inspector
+                "1528758226428891362", // Sub inspector
+                "1528758226428891361", // Agent sef principal
+                "1528758226428891360", // Agent sef adjunct
+                "1528758226428891359", // Agent principal
+                "1528758226420633752", // Agent
+                "1528758226420633750"  // Cadet
+            ]);
 
             const eligibleMembers = (Array.isArray(members) ? members : [])
                 .filter(member => {
@@ -11998,13 +12014,12 @@ app.post(
                 .map(member => ({
                     member,
                     discordId: String(member.user.id),
-                    displayName:
-                        String(
-                            member.nick ||
-                            member.user?.global_name ||
-                            member.user?.username ||
-                            "Membru Poliție"
-                        ).trim()
+                    // Căutăm callsign-ul în nickname mai întâi. Dacă nickname-ul
+                    // nu îl conține, încercăm și global_name / username.
+                    displayName: String(member.nick || "").trim(),
+                    globalName: String(member.user?.global_name || "").trim(),
+                    username: String(member.user?.username || "").trim(),
+                    roleIds: Array.isArray(member.roles) ? member.roles.map(String) : []
                 }))
                 .sort((a, b) =>
                     Number(GOVERNMENT_RESPONSIBLE_IDS.has(b.discordId)) -
@@ -12026,7 +12041,11 @@ app.post(
                 // callsign-ul este citit direct din nickname-ul Discord.
                 const callsign = isGovernmentResponsible
                     ? "000"
-                    : extractPoliceCallsign(item.displayName);
+                    : (
+                        extractPoliceCallsign(item.displayName) ||
+                        extractPoliceCallsign(item.globalName) ||
+                        extractPoliceCallsign(item.username)
+                    );
 
                 if (!callsign || !validCallsigns.has(callsign)) {
                     skippedWithoutCallsign++;
@@ -12295,7 +12314,19 @@ app.post(
                 cleared,
                 skippedWithoutCallsign,
                 totalSlots: slotRows.length,
-                discordMembersRead: eligibleMembers.length
+                discordMembersRead: eligibleMembers.length,
+                debug: {
+                    totalDiscordMembers: Array.isArray(members) ? members.length : 0,
+                    policeRoleMatches: eligibleMembers.length,
+                    skippedWithoutCallsign,
+                    sampleEligible: eligibleMembers.slice(0, 10).map(item => ({
+                        discordId: item.discordId,
+                        nick: item.displayName,
+                        globalName: item.globalName,
+                        username: item.username,
+                        callsign: extractPoliceCallsign(item.displayName) || extractPoliceCallsign(item.globalName) || extractPoliceCallsign(item.username)
+                    }))
+                }
             });
         } catch (error) {
             console.error(
