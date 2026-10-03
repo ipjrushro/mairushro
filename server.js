@@ -2506,23 +2506,30 @@ function extractPoliceCallsign(value) {
     const raw = String(value || "").trim();
     if (!raw) return null;
 
-    // În serverul Poliției, callsign-ul este la începutul nickname-ului.
-    // Acceptăm exact formatele folosite în Discord:
-    // [660] Nume / (660) Nume / 660 Nume / 660 - Nume
-    // [D-660] Nume / [P-660] Nume / D-660 Nume / P-660 Nume
-    // și variante cu spații.
-    const patterns = [
-        /^\s*[\[(]\s*(?:D-|P-)?\s*(\d{1,3})\s*[\])]\s*/i,
-        /^\s*(?:D-|P-)\s*(\d{1,3})(?=\s|[-|•:_]|$)/i,
-        /^\s*(\d{1,3})(?=\s|[-|•:_]|$)/i
+    // Callsign-ul Poliției este un număr din lista oficială de sloturi.
+    // Îl căutăm mai întâi în formele explicite [660], (660), [D-660], etc.,
+    // apoi la începutul nickname-ului. Nu ne bazăm pe un singur format.
+    const explicitPatterns = [
+        /[\[\(\【]\s*(?:D-|P-)?\s*(\d{1,3})\s*[\]\)】]/i,
+        /(?:^|\s)[\[\(]\s*(?:D-|P-)?\s*(\d{1,3})\s*[\]\)]/i,
+        /^(?:D-|P-)\s*(\d{1,3})(?:\s|[-|•:_]|$)/i,
+        /^(\d{1,3})(?:\s|[-|•:_]|$)/i
     ];
 
-    for (const pattern of patterns) {
+    for (const pattern of explicitPatterns) {
         const match = raw.match(pattern);
         if (!match) continue;
+        const normalized = normalizePoliceCallsign(match[1]);
+        if (normalized) return normalized;
+    }
 
-        const number = Number(match[1]);
-        const normalized = normalizePoliceCallsign(number);
+    // Unele nickname-uri pot avea text înaintea callsign-ului. Pentru a evita
+    // confundarea unui număr din nume cu callsign-ul, acceptăm aici doar un
+    // număr care este unul dintre sloturile oficiale și este delimitat clar.
+    const anywhere = /(?:^|[\s|•:_-])[\[\(]?\s*(?:D-|P-)?\s*(\d{1,3})\s*[\]\)]?(?=\s|$|[-|•:_])/gi;
+    let match;
+    while ((match = anywhere.exec(raw)) !== null) {
+        const normalized = normalizePoliceCallsign(match[1]);
         if (normalized) return normalized;
     }
 
