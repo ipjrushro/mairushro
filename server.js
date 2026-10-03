@@ -11931,60 +11931,6 @@ app.post(
                     )
                 );
 
-            // IMPORTANT:
-            // `docs_personnel.discord_id` este UNIQUE pentru toată tabela,
-            // nu doar pentru rândurile Poliției. Dacă un membru a rămas
-            // înregistrat într-un rând vechi (de exemplu un rând DIICOT),
-            // UPSERT-ul Poliției poate eșua cu:
-            // duplicate key value violates unique constraint
-            // "docs_personnel_discord_id_key".
-            //
-            // Eliberăm o singură dată acele ID-uri conflictuale înainte de
-            // a salva grila Poliției. Datele rândului sunt păstrate; doar
-            // legătura Discord este scoasă pentru a permite sincronizarea.
-            const eligibleDiscordIds = [
-                ...new Set(
-                    eligibleMembers
-                        .map(member => String(member?.user?.id || "").trim())
-                        .filter(Boolean)
-                )
-            ];
-
-            const policeRowIdSet = new Set(
-                policeRows.map(row => String(row.id || "").trim()).filter(Boolean)
-            );
-
-            const conflictingNonPoliceIds = rows
-                .filter(row => {
-                    const id = String(row.id || "").trim();
-                    const discordId = String(row.discord_id || "").trim();
-                    return (
-                        id &&
-                        !policeRowIdSet.has(id) &&
-                        discordId &&
-                        eligibleDiscordIds.includes(discordId)
-                    );
-                })
-                .map(row => String(row.id).trim());
-
-            if (conflictingNonPoliceIds.length) {
-                const { error: conflictClearError } = await supabase
-                    .from("docs_personnel")
-                    .update({
-                        discord_id: null,
-                        active: false,
-                        discord: "",
-                        updated_at: now,
-                        updated_by_id: editorId,
-                        updated_by_name: editorName
-                    })
-                    .in("id", [...new Set(conflictingNonPoliceIds)]);
-
-                if (conflictClearError) {
-                    throw conflictClearError;
-                }
-            }
-
             let assigned = 0;
             let moved = 0;
             let cleared = 0;
@@ -12158,6 +12104,57 @@ app.post(
 
                 if (clearDiscordError) {
                     throw clearDiscordError;
+                }
+            }
+
+            // Dacă același Discord ID există din greșeală pe un rând vechi
+            // care NU mai este un slot valid de Poliție, îl eliberăm înainte
+            // de UPSERT. Altfel constrângerea UNIQUE pe discord_id blochează
+            // sincronizarea chiar dacă grila Poliției este corectă.
+            const finalDiscordIds = [
+                ...new Set(
+                    slotRows
+                        .map(row => String(row.discord_id || "").trim())
+                        .filter(Boolean)
+                )
+            ];
+
+            if (finalDiscordIds.length) {
+                const finalSlotIds = new Set(
+                    slotRows.map(row => String(row.id || "").trim()).filter(Boolean)
+                );
+
+                const conflictingRows = rows
+                    .filter(row => {
+                        const rowId = String(row.id || "").trim();
+                        const discordId = String(row.discord_id || "").trim();
+                        return (
+                            discordId &&
+                            finalDiscordIds.includes(discordId) &&
+                            !finalSlotIds.has(rowId)
+                        );
+                    })
+                    .map(row => row.id)
+                    .filter(Boolean);
+
+                if (conflictingRows.length) {
+                    const { error: clearConflictsError } =
+                        await supabase
+                            .from("docs_personnel")
+                            .update({
+                                discord_id: null,
+                                full_name: "",
+                                active: false,
+                                discord: "",
+                                updated_at: now,
+                                updated_by_id: editorId,
+                                updated_by_name: editorName
+                            })
+                            .in("id", [...new Set(conflictingRows)]);
+
+                    if (clearConflictsError) {
+                        throw clearConflictsError;
+                    }
                 }
             }
 
