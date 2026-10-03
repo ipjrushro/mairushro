@@ -2506,13 +2506,15 @@ function extractPoliceCallsign(value) {
     const raw = String(value || "").trim();
     if (!raw) return null;
 
-    // Formatele folosite de nickname-urile Poliției:
-    // [002] Nume / [P-002] Nume / 002 - Nume / Nume | 002 / Nume 002
+    // Acceptăm toate formatele folosite pe server: D-123, P-123,
+    // [123], [P-123], [D-123], 123 - Nume, Nume | 123, Nume 123.
     const patterns = [
-        /\[\s*(?:P-)?(\d{1,3})\s*\]/i,
-        /(?:^|[\s|•:_-])(?:P-)?(\d{1,3})(?=\s|$|[|•:_-])/i,
-        /(?:^|[|•:_-])\s*(?:P-)?(\d{1,3})\s*$/i,
-        /(?:^|\s)(?:P-)?(\d{1,3})\s*$/i
+        /\[\s*(?:D|P)[\s_-]?(\d{1,3})\s*\]/i,
+        /\b(?:D|P)[\s_-]?(\d{1,3})\b/i,
+        /\[\s*(\d{1,3})\s*\]/i,
+        /(?:^|[\s|•:_-])(?:P|D)?[\s_-]?(\d{1,3})(?=\s|$|[|•:_-])/i,
+        /(?:^|[|•:_-])\s*(?:P|D)?[\s_-]?(\d{1,3})\s*$/i,
+        /(?:^|\s)(?:P|D)?[\s_-]?(\d{1,3})\s*$/i
     ];
 
     for (const pattern of patterns) {
@@ -12002,7 +12004,12 @@ app.post(
                 // callsign-ul este citit direct din nickname-ul Discord.
                 const callsign = isGovernmentResponsible
                     ? "000"
-                    : extractPoliceCallsign(item.displayName);
+                    : (
+                        extractPoliceCallsign(item.member?.nick) ||
+                        extractPoliceCallsign(item.member?.user?.global_name) ||
+                        extractPoliceCallsign(item.member?.user?.username) ||
+                        extractPoliceCallsign(item.displayName)
+                    );
 
                 if (!callsign || !validCallsigns.has(callsign)) {
                     skippedWithoutCallsign++;
