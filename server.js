@@ -2506,25 +2506,38 @@ function extractPoliceCallsign(value) {
     const raw = String(value || "").trim();
     if (!raw) return null;
 
-    // Acceptăm toate formatele folosite pe server: D-123, P-123,
-    // [123], [P-123], [D-123], 123 - Nume, Nume | 123, Nume 123.
+    // În serverul Poliției, callsign-ul este la începutul nickname-ului.
+    // Acceptăm exact formatele folosite în Discord:
+    // [660] Nume / (660) Nume / 660 Nume / 660 - Nume
+    // [D-660] Nume / [P-660] Nume / D-660 Nume / P-660 Nume
+    // și variante cu spații.
     const patterns = [
-        /\[\s*(?:D|P)[\s_-]?(\d{1,3})\s*\]/i,
-        /\b(?:D|P)[\s_-]?(\d{1,3})\b/i,
-        /\[\s*(\d{1,3})\s*\]/i,
-        /(?:^|[\s|•:_-])(?:P|D)?[\s_-]?(\d{1,3})(?=\s|$|[|•:_-])/i,
-        /(?:^|[|•:_-])\s*(?:P|D)?[\s_-]?(\d{1,3})\s*$/i,
-        /(?:^|\s)(?:P|D)?[\s_-]?(\d{1,3})\s*$/i
+        /^\s*[\[(]\s*(?:D-|P-)?\s*(\d{1,3})\s*[\])]\s*/i,
+        /^\s*(?:D-|P-)\s*(\d{1,3})(?=\s|[-|•:_]|$)/i,
+        /^\s*(\d{1,3})(?=\s|[-|•:_]|$)/i
     ];
 
     for (const pattern of patterns) {
         const match = raw.match(pattern);
         if (!match) continue;
-        const normalized = normalizePoliceCallsign(match[1]);
+
+        const number = Number(match[1]);
+        const normalized = normalizePoliceCallsign(number);
         if (normalized) return normalized;
     }
 
     return null;
+}
+
+function cleanPoliceDisplayName(value) {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+
+    return raw
+        .replace(/^\s*[\[(]\s*(?:D-|P-)?\s*\d{1,3}\s*[\])]\s*/i, "")
+        .replace(/^\s*(?:D-|P-)\s*\d{1,3}\s*(?:[-|•:_]\s*)?/i, "")
+        .replace(/^\s*\d{1,3}\s*(?:[-|•:_]\s*)?/i, "")
+        .trim();
 }
 
 function mapDocsRow(row) {
@@ -11979,10 +11992,12 @@ app.post(
                     member,
                     discordId: String(member.user.id),
                     displayName:
-                        member.nick ||
-                        member.user?.global_name ||
-                        member.user?.username ||
-                        "Membru Poliție"
+                        String(
+                            member.nick ||
+                            member.user?.global_name ||
+                            member.user?.username ||
+                            "Membru Poliție"
+                        ).trim()
                 }))
                 .sort((a, b) =>
                     Number(GOVERNMENT_RESPONSIBLE_IDS.has(b.discordId)) -
@@ -12004,12 +12019,7 @@ app.post(
                 // callsign-ul este citit direct din nickname-ul Discord.
                 const callsign = isGovernmentResponsible
                     ? "000"
-                    : (
-                        extractPoliceCallsign(item.member?.nick) ||
-                        extractPoliceCallsign(item.member?.user?.global_name) ||
-                        extractPoliceCallsign(item.member?.user?.username) ||
-                        extractPoliceCallsign(item.displayName)
-                    );
+                    : extractPoliceCallsign(item.displayName);
 
                 if (!callsign || !validCallsigns.has(callsign)) {
                     skippedWithoutCallsign++;
@@ -12029,11 +12039,7 @@ app.post(
                         String(row.id) === String(oldRow?.id || "")
                     ) || candidates[0];
 
-                const cleanName = item.displayName
-                    .replace(/^\s*\[(?:P-)?\d{1,3}\]\s*/i, "")
-                    .replace(/^\s*(?:P-)?\d{1,3}\s*(?:[-|•:]|\|)\s*/i, "")
-                    .replace(/\s*(?:[-|•:]|\|)\s*(?:P-)?\d{1,3}\s*$/i, "")
-                    .trim();
+                const cleanName = cleanPoliceDisplayName(item.displayName);
 
                 const source = oldRow || target;
 
