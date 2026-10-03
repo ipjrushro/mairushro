@@ -218,7 +218,7 @@ const MEETING_EXCUSE_DISCORD_ROLE_ID = "1528758226319966340";
 const MEETING_EXCUSE_DURATION_MS = 24 * 60 * 60 * 1000;
 const LEAVE_ROLE_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 
-const TESTER_DIICOT_ROLE_ID = "1528758226407919637";
+const TESTER_POLITIE_ROLE_ID = "1528758226420633751";
 const CANDIDATE_TEST_LOG_CHANNEL_ID = "1528758227628462270";
 const LEAVE_RESET_USER_ID = "1315733546312142921";
 
@@ -3069,7 +3069,7 @@ function hasTesterAccess(
     return (
         hasPoliceFullAccess(user) ||
         roles.includes(
-            TESTER_DIICOT_ROLE_ID
+            TESTER_POLITIE_ROLE_ID
         )
     );
 }
@@ -3624,7 +3624,7 @@ app.get(
 
         const isTester =
             roles.includes(
-                "1528758226407919637"
+                TESTER_POLITIE_ROLE_ID
             );
 
         // HUB MAI: detectăm separat gradul din Poliție și gradul din DIICOT.
