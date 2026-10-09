@@ -32934,7 +32934,7 @@ const query =
                 // Astfel evităm limita Cloudflare de subcereri per invocare.
                 while (!done) {
                     rounds += 1;
-                    if (rounds > 10000) {
+                    if (rounds > 50000) {
                         throw new Error("Ștergerea a fost oprită pentru siguranță după prea multe loturi.");
                     }
 
