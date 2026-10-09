@@ -1927,7 +1927,7 @@ async function readB2JSON(key) {
 // ======================================================
 
 const B2_REPORT_CACHE_TTL_MS =
-    60 * 1000; // 1 minut: profilurile nu rămân cu rapoarte vechi ore întregi
+    60 * 1000; // 1 minut: evităm afișarea unei liste vechi de rapoarte
 
 let b2ReportCache = {
     reports: [],
@@ -1989,6 +1989,9 @@ async function loadAllB2ReportsFromStorage() {
         .filter(key => key.endsWith(".json"));
 
     const reports = [];
+    let failedReads = 0;
+
+    console.log(`[B2 REPORTS] Au fost găsite ${keys.length} fișiere JSON curente în reports/. Încep încărcarea completă.`);
 
     // Loturi mici ca să nu trimitem foarte multe request-uri simultan.
     const batchSize = 6;
@@ -2009,22 +2012,27 @@ async function loadAllB2ReportsFromStorage() {
                 batch.map(
                     async key => {
                         try {
-                            const storedReport = await readB2JSON(key);
-                            const mappedReport = mapB2Report(storedReport);
+                            const rawReport = await readB2JSON(key);
+                            const mappedReport = mapB2Report(rawReport);
 
-                            // Calea B2 este reports/<DiscordID>/<reportId>.json.
-                            // Pentru profil, ID-ul din folder este sursa de adevăr:
-                            // unele rapoarte vechi pot avea authorId lipsă sau greșit în JSON.
-                            const pathMatch = String(key).match(/^reports\/(\d{17,20})\/[^/]+\.json$/);
-                            const authorIdFromPath = pathMatch ? pathMatch[1] : "";
+                            // Calea B2 reports/<DiscordID>/<reportId>.json este sursa
+                            // stabilă pentru autor și ID, chiar dacă un JSON vechi are câmpuri lipsă.
+                            const pathMatch = String(key).match(/^reports\/(\d{17,20})\/([^/]+)\.json$/);
+                            if (pathMatch && mappedReport) {
+                                if (!mappedReport.authorId) mappedReport.authorId = pathMatch[1];
+                                if (!mappedReport.id) mappedReport.id = pathMatch[2];
+                            }
 
-                            if (mappedReport && authorIdFromPath) {
-                                mappedReport.authorId = authorIdFromPath;
+                            if (!mappedReport || !mappedReport.id) {
+                                failedReads += 1;
+                                console.error("B2 report invalid (lipsește ID-ul):", key);
+                                return null;
                             }
 
                             return mappedReport;
                         }
                         catch (error) {
+                            failedReads += 1;
                             console.error(
                                 "B2 report read error:",
                                 key,
@@ -2042,6 +2050,7 @@ async function loadAllB2ReportsFromStorage() {
         );
     }
 
+    console.log(`[B2 REPORTS] Încărcare terminată: ${reports.length}/${keys.length} rapoarte valide; ${failedReads} eșecuri la citire.`);
     return sortB2Reports(reports);
 }
 
@@ -2068,7 +2077,7 @@ async function getAllB2ReportsCached() {
                 };
 
                 console.log(
-                    `[B2 CACHE] ${reports.length} rapoarte încărcate în cache pentru 6 ore.`
+                    `[B2 CACHE] ${reports.length} rapoarte încărcate în cache (TTL 1 minut).`
                 );
 
                 return reports;
