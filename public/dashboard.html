@@ -14899,6 +14899,15 @@ body:after{
 
                         <button
                             type="button"
+                            id="admin-download-reports"
+                            class="primary-btn"
+                            style="margin-top:10px;width:100%;border-color:rgba(49,216,135,.35);background:rgba(20,120,75,.15);color:#75e6ad;"
+                        >
+                            ⬇ DESCARCĂ RAPOARTE (.TXT)
+                        </button>
+
+                        <button
+                            type="button"
                             id="admin-delete-all-reports"
                             class="primary-btn"
                             style="
@@ -23947,6 +23956,12 @@ const query =
                     )}
                 </div>
 
+                ${
+                    report.details
+                        ? `<div class="report-description" style="margin-top:8px;white-space:pre-wrap;"><strong>DETALII OPERAȚIONALE</strong><br>${escapeHTML(typeof report.details === "string" ? report.details : JSON.stringify(report.details, null, 2))}</div>`
+                        : ""
+                }
+
 
                 ${
                     report.coOrganizer
@@ -24224,6 +24239,49 @@ const query =
             "click",
             syncAdminReports
         );
+    }
+
+    async function downloadAdminReportsTxt() {
+        const button = document.getElementById("admin-download-reports");
+        if (button) {
+            button.disabled = true;
+            button.textContent = "⏳ SE PREGĂTEȘTE FIȘIERUL...";
+        }
+        try {
+            const response = await fetch("/api/admin/reports/export.txt", {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store"
+            });
+            if (!response.ok) {
+                let message = "Rapoartele nu au putut fi descărcate.";
+                try { const data = await response.json(); message = data.error || message; } catch {}
+                throw new Error(message);
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "rapoarte-politie.txt";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+            if (typeof showToast === "function") showToast("Fișierul cu rapoarte a fost descărcat.", "success");
+        } catch (error) {
+            if (typeof showToast === "function") showToast(error.message || "Descărcarea a eșuat.", "error");
+            else alert(error.message || "Descărcarea a eșuat.");
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.textContent = "⬇ DESCARCĂ RAPOARTE (.TXT)";
+            }
+        }
+    }
+
+    const adminDownloadReportsButton = document.getElementById("admin-download-reports");
+    if (adminDownloadReportsButton) {
+        adminDownloadReportsButton.addEventListener("click", downloadAdminReportsTxt);
     }
 
     async function loadAdminReports() {
