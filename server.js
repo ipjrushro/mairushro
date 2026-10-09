@@ -2093,23 +2093,29 @@ async function getAllB2ReportsCached() {
 }
 
 async function listB2Reports(authorId = null) {
-    const allReports =
-        await getAllB2ReportsCached();
-
-    if (!authorId) {
-        return allReports;
+    // For a single person's profile, query only that person's B2 prefix.
+    // Loading the entire reports/ bucket here can exceed Cloudflare's
+    // subrequest limit when the bucket contains hundreds of reports.
+    if (authorId) {
+        const authorIdString = String(authorId);
+        const keys = (await listB2ObjectKeys(`reports/${authorIdString}/`))
+            .filter(key => key.endsWith(".json"));
+        const reports = [];
+        // Individual profiles normally contain far fewer objects than the
+        // entire bucket. Process sequentially to avoid bursts of subrequests.
+        for (const key of keys) {
+            try {
+                const report = mapB2Report(await readB2JSON(key));
+                report.authorId = authorIdString;
+                reports.push(report);
+            } catch (error) {
+                console.error("B2 profile report read error:", key, error?.message || error);
+            }
+        }
+        return sortB2Reports(reports);
     }
 
-    const authorIdString =
-        String(authorId);
-
-    return allReports.filter(
-        report =>
-            String(
-                report.authorId ||
-                ""
-            ) === authorIdString
-    );
+    return getAllB2ReportsCached();
 }
 
 async function listB2ObjectVersions(prefix) {
@@ -5500,6 +5506,51 @@ app.post(
 // ======================================================
 
 app.get(
+    "/api/reports/my/page",
+    requireAuth,
+    async (req, res) => {
+        if (!ensureB2(res)) return;
+        try {
+            const authorId = String(req.session.user.id || "");
+            if (!/^\d{17,20}$/.test(authorId)) {
+                return res.status(400).json({ error: "ID-ul Discord nu este valid." });
+            }
+            const rawCursor = String(req.query?.cursor || "");
+            const cursor = rawCursor ? Buffer.from(rawCursor, "base64url").toString("utf8") : undefined;
+            const response = await b2.send(new ListObjectsV2Command({
+                Bucket: B2_BUCKET,
+                Prefix: `reports/${authorId}/`,
+                ContinuationToken: cursor,
+                MaxKeys: 20
+            }));
+            const keys = (response.Contents || [])
+                .map(item => item.Key)
+                .filter(key => typeof key === "string" && key.endsWith(".json"));
+            const reports = [];
+            for (const key of keys) {
+                try {
+                    const report = mapB2Report(await readB2JSON(key));
+                    report.authorId = authorId;
+                    reports.push(report);
+                } catch (error) {
+                    console.error("B2 personal report page read error:", key, error?.message || error);
+                }
+            }
+            const nextCursor = response.IsTruncated && response.NextContinuationToken
+                ? Buffer.from(response.NextContinuationToken, "utf8").toString("base64url")
+                : null;
+            return res.json({
+                reports: await withDirectB2ImageUrlsMany(reports),
+                nextCursor
+            });
+        } catch (error) {
+            console.error("My Reports Page Error:", error?.message || error);
+            return res.status(500).json({ error: "Rapoartele nu au putut fi încărcate." });
+        }
+    }
+);
+
+app.get(
     "/api/reports/my",
     requireAuth,
     async (req, res) => {
@@ -5581,6 +5632,48 @@ async function getNumberedAdminReports({ force = false } = {}) {
 // ======================================================
 // TOATE RAPOARTELE - ADMIN
 // ======================================================
+
+// Paginated admin report loader: keep each Cloudflare Worker invocation under
+// the subrequest ceiling instead of reading hundreds of B2 JSON objects at once.
+app.get(
+    "/api/admin/reports/page",
+    requireAdmin,
+    async (req, res) => {
+        if (!ensureB2(res)) return;
+        try {
+            const rawCursor = String(req.query?.cursor || "");
+            const cursor = rawCursor ? Buffer.from(rawCursor, "base64url").toString("utf8") : undefined;
+            const response = await b2.send(new ListObjectsV2Command({
+                Bucket: B2_BUCKET,
+                Prefix: "reports/",
+                ContinuationToken: cursor,
+                MaxKeys: 20
+            }));
+            const keys = (response.Contents || [])
+                .map(item => item.Key)
+                .filter(key => typeof key === "string" && key.endsWith(".json"));
+            const reports = [];
+            for (const key of keys) {
+                try {
+                    const report = mapB2Report(await readB2JSON(key));
+                    const match = key.match(/^reports\/(\d{17,20})\/([^/]+)\.json$/);
+                    if (match) report.authorId = match[1];
+                    reports.push(report);
+                } catch (error) {
+                    console.error("B2 report page read error:", key, error?.message || error);
+                }
+            }
+            const nextToken = response.IsTruncated && response.NextContinuationToken
+                ? Buffer.from(response.NextContinuationToken, "utf8").toString("base64url")
+                : null;
+            const withUrls = await withDirectB2ImageUrlsMany(reports);
+            return res.json({ success: true, reports: withUrls, nextCursor: nextToken, pageSize: 20 });
+        } catch (error) {
+            console.error("Admin Reports Page Error:", error?.message || error);
+            return res.status(500).json({ error: "Rapoartele nu au putut fi încărcate din Backblaze." });
+        }
+    }
+);
 
 app.get(
     "/api/admin/reports",
