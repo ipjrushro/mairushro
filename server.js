@@ -5585,7 +5585,8 @@ async function getNumberedAdminReports({ force = false } = {}) {
 
 // ======================================================
 // EXPORT RAPOARTE - ADMIN (Notepad/TXT)
-// Include call sign, Discord ID, nume, rapoarte și razii.
+// Include TOT personalul Poliției din Discord, inclusiv membrii
+// care nu au încă rapoarte, apoi atașează rapoartele fiecăruia.
 // ======================================================
 app.get(
     "/api/admin/reports/export.txt",
@@ -5595,53 +5596,89 @@ app.get(
 
         try {
             const reports = await getNumberedAdminReports({ force: true });
-            let members = [];
-            try { members = await getGuildMembersCached({ force: true }); }
-            catch (error) { console.warn("[Export rapoarte] Lista Discord indisponibilă:", error.message); }
-
+            const members = await fetchAllGuildMembersForPersonnel();
             const memberById = new Map();
-            for (const member of members) {
-                const user = member?.user || {};
-                const id = String(user.id || "");
-                if (!id) continue;
-                const nickname = String(member.nick || user.global_name || user.username || "").trim();
-                const match = nickname.match(/^\s*\[(?:P-|D-)?(\d{1,3})\]/i);
-                memberById.set(id, {
+            const peopleById = new Map();
+
+            const parseCallsign = nickname => {
+                const value = String(nickname || "").trim();
+                // Acceptă [660], (660), [P-660], [D-660] la începutul poreclei.
+                const match = value.match(/^\s*[\[(]\s*(?:(?:P|D)-\s*)?(\d{1,3})\s*[\])]\s*/i);
+                return {
                     callsign: match ? match[1].padStart(3, "0") : "-",
-                    name: nickname.replace(/^\s*\[(?:P-|D-)?\d{1,3}\]\s*/i, "").trim() || user.username || "Necunoscut"
-                });
+                    name: value.replace(/^\s*[\[(]\s*(?:(?:P|D)-\s*)?\d{1,3}\s*[\])]\s*/i, "").trim()
+                };
+            };
+
+            // Personalul este filtrat după gradele Poliției, nu după cine a făcut rapoarte.
+            for (const rawMember of (Array.isArray(members) ? members : [])) {
+                const mapped = mapDiscordPersonnelMember(rawMember);
+                if (!mapped) continue;
+                const user = rawMember?.user || {};
+                const id = String(mapped.id || user.id || "");
+                if (!id) continue;
+                const nickname = String(rawMember.nick || user.global_name || user.username || mapped.displayName || "").trim();
+                const parsed = parseCallsign(nickname);
+                const person = {
+                    id,
+                    callsign: parsed.callsign,
+                    name: parsed.name || user.username || mapped.displayName || "Necunoscut",
+                    rank: mapped.rank || "-",
+                    reports: []
+                };
+                peopleById.set(id, person);
+                memberById.set(id, person);
             }
 
-            const byAuthor = new Map();
+            // Adăugăm și autorii rapoartelor care nu mai apar în lista Discord,
+            // astfel încât rapoartele vechi să nu dispară din export.
             for (const report of reports) {
                 const id = String(report.authorId || "");
                 if (!id) continue;
-                if (!byAuthor.has(id)) byAuthor.set(id, []);
-                byAuthor.get(id).push(report);
+                if (!peopleById.has(id)) {
+                    peopleById.set(id, {
+                        id,
+                        callsign: "-",
+                        name: String(report.authorName || report.authorUsername || "Necunoscut"),
+                        rank: String(report.authorRank || "-"),
+                        reports: []
+                    });
+                }
+                peopleById.get(id).reports.push(report);
             }
 
             const clean = value => String(value ?? "-").replace(/[\r\n]+/g, " ").trim() || "-";
-            const sections = [...byAuthor.entries()].map(([id, rows]) => {
-                const member = memberById.get(id) || {};
-                const first = rows[0] || {};
-                const name = member.name || first.authorName || first.authorUsername || "Necunoscut";
-                const callsign = member.callsign || "-";
-                const sorted = [...rows].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+            const people = [...peopleById.values()].sort((a, b) => {
+                const ca = String(a.callsign || "").replace(/\D/g, "");
+                const cb = String(b.callsign || "").replace(/\D/g, "");
+                if (ca && cb && Number(ca) !== Number(cb)) return Number(ca) - Number(cb);
+                if (ca && !cb) return -1;
+                if (!ca && cb) return 1;
+                return String(a.name).localeCompare(String(b.name), "ro");
+            });
+
+            const sections = people.map(person => {
+                const sorted = [...person.reports].sort((a, b) => {
+                    const diff = new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+                    return diff || String(a.id || "").localeCompare(String(b.id || ""));
+                });
                 const normal = sorted.filter(r => !["RAZIE", "ANTRENAMENT"].includes(String(r.type || "").toUpperCase()));
                 const raids = sorted.filter(r => String(r.type || "").toUpperCase() === "RAZIE");
                 const trainings = sorted.filter(r => String(r.type || "").toUpperCase() === "ANTRENAMENT");
-                const formatRows = list => list.length ? list.map((r, i) => `  ${i + 1}. ${clean(r.title)} | ${clean(r.createdAtFormatted || r.createdAt)}${r.description ? ` | ${clean(r.description)}` : ""}`).join("\n") : "  Nu există.";
-                return `CALL SIGN: ${clean(callsign)}\nID: ${id}\nNUME: ${clean(name)}\n\nRAPOARTE (${normal.length}):\n${formatRows(normal)}\n\nRAZII (${raids.length}):\n${formatRows(raids)}\n\nANTRENAMENTE (${trainings.length}):\n${formatRows(trainings)}`;
+                const formatRows = list => list.length
+                    ? list.map((r, i) => `  ${i + 1}. ${clean(r.title)} | ${clean(r.createdAtFormatted || r.createdAt)}${r.description ? ` | ${clean(r.description)}` : ""}`).join("\n")
+                    : "  Nu există.";
+                return `CALL SIGN: ${clean(person.callsign)}\nID: ${person.id}\nNUME: ${clean(person.name)}\nGRAD: ${clean(person.rank)}\n\nRAPOARTE (${normal.length}):\n${formatRows(normal)}\n\nRAZII (${raids.length}):\n${formatRows(raids)}\n\nANTRENAMENTE (${trainings.length}):\n${formatRows(trainings)}`;
             });
 
-            const output = "\uFEFFRAPOARTE POLIȚIA ROMÂNĂ\nGenerat: " + new Date().toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" }) + "\nTotal rapoarte: " + reports.length + "\n\n" + (sections.join("\n\n" + "=".repeat(70) + "\n\n") || "Nu există rapoarte.");
+            const output = "\uFEFFRAPOARTE POLIȚIA ROMÂNĂ\nGenerat: " + new Date().toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" }) + "\nPersonal inclus: " + people.length + "\nTotal rapoarte: " + reports.length + "\n\n" + (sections.join("\n\n" + "=".repeat(70) + "\n\n") || "Nu a fost găsit personal cu gradele Poliției.");
             res.setHeader("Content-Type", "text/plain; charset=utf-8");
             res.setHeader("Content-Disposition", 'attachment; filename="rapoarte-politie.txt"');
             res.setHeader("Cache-Control", "no-store");
             return res.status(200).send(output);
         } catch (error) {
             console.error("[Export rapoarte] Eroare:", error);
-            return res.status(500).json({ error: "Rapoartele nu au putut fi exportate." });
+            return res.status(500).json({ error: "Rapoartele și personalul nu au putut fi exportate. Verifică accesul botului la lista de membri Discord." });
         }
     }
 );
