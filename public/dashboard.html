@@ -23610,37 +23610,29 @@ const query =
        MY REPORTS
     ========================================================== */
 
-    async function loadMyReports() {
+    async function fetchAllMyReportsPaged() {
+            const all = [];
+            let cursor = null;
+            let pages = 0;
+            do {
+                const url = new URL("/api/reports/my/page", window.location.origin);
+                if (cursor) url.searchParams.set("cursor", cursor);
+                const response = await fetch(url.toString(), { credentials: "include", cache: "no-store" });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Rapoartele nu au putut fi încărcate.");
+                all.push(...(data.reports || []));
+                cursor = data.nextCursor || null;
+                pages += 1;
+                if (pages > 100) throw new Error("Prea multe pagini de rapoarte personale.");
+            } while (cursor);
+            return all.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        }
+
+        async function loadMyReports() {
 
         try {
 
-            const response =
-                await fetch(
-                    "/api/reports/my",
-                    {
-                        credentials:
-                            "include",
-
-                        cache:
-                            "no-store"
-                    }
-                );
-
-
-            if (!response.ok) {
-
-                return;
-            }
-
-
-            const data =
-                await response.json();
-
-
-            const reports =
-                data.reports ||
-                [];
-
+            const reports = await fetchAllMyReportsPaged();
 
             document
                 .getElementById(
@@ -24132,100 +24124,49 @@ const query =
        ADMIN REPORTS
     ========================================================== */
 
+    async function fetchAllAdminReportsPaged() {
+        const all = [];
+        let cursor = null;
+        let pages = 0;
+        do {
+            const url = new URL("/api/admin/reports/page", window.location.origin);
+            if (cursor) url.searchParams.set("cursor", cursor);
+            const response = await fetch(url.toString(), { credentials: "include", cache: "no-store" });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Rapoartele nu au putut fi încărcate.");
+            all.push(...(data.reports || []));
+            cursor = data.nextCursor || null;
+            pages += 1;
+            if (pages > 200) throw new Error("Încărcarea a fost oprită: prea multe pagini de rapoarte.");
+        } while (cursor);
+        const chronological = [...all].sort((a, b) => {
+            const ta = new Date(a.createdAt || 0).getTime();
+            const tb = new Date(b.createdAt || 0).getTime();
+            if (ta !== tb) return ta - tb;
+            return String(a.id || "").localeCompare(String(b.id || ""));
+        });
+        const numberById = new Map(chronological.map((r, i) => [String(r.id), i + 1]));
+        return all.map(r => ({ ...r, reportNumber: numberById.get(String(r.id)) || null }))
+            .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    }
+
     async function syncAdminReports() {
-
-        const button =
-            document.getElementById(
-                "admin-sync-reports"
-            );
-
-        if (button) {
-            button.disabled = true;
-            button.textContent = "🔄 SE SINCRONIZEAZĂ...";
-        }
-
+        const button = document.getElementById("admin-sync-reports");
+        if (button) { button.disabled = true; button.textContent = "🔄 SE SINCRONIZEAZĂ..."; }
         try {
-            const response =
-                await fetch(
-                    "/api/admin/reports/sync",
-                    {
-                        method: "POST",
-                        credentials: "include",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        cache: "no-store"
-                    }
-                );
-
-            const data =
-                await response.json();
-
-            if (!response.ok) {
-                throw new Error(
-                    data.error ||
-                    "Rapoartele nu au putut fi sincronizate."
-                );
-            }
-
-            const reports =
-                data.reports ||
-                [];
-
-            const total =
-                document.getElementById(
-                    "admin-total"
-                );
-
-            if (total) {
-                total.textContent =
-                    reports.length;
-            }
-
-            renderReports(
-                "admin-reports-container",
-                reports,
-                true
-            );
-
-            if (typeof showToast === "function") {
-                showToast(
-                    data.message ||
-                    "Rapoartele au fost sincronizate.",
-                    "success"
-                );
-            } else {
-                alert(
-                    data.message ||
-                    "Rapoartele au fost sincronizate."
-                );
-            }
-        }
-        catch (error) {
-            console.error(
-                "syncAdminReports:",
-                error
-            );
-
-            if (typeof showToast === "function") {
-                showToast(
-                    error.message ||
-                    "Rapoartele nu au putut fi sincronizate.",
-                    "error"
-                );
-            } else {
-                alert(
-                    error.message ||
-                    "Rapoartele nu au putut fi sincronizate."
-                );
-            }
-        }
-        finally {
-            if (button) {
-                button.disabled = false;
-                button.textContent =
-                    "🔄 SINCRONIZEAZĂ RAPOARTE";
-            }
+            const reports = await fetchAllAdminReportsPaged();
+            const total = document.getElementById("admin-total");
+            if (total) total.textContent = reports.length;
+            renderReports("admin-reports-container", reports, true);
+            const message = `Au fost încărcate ${reports.length} rapoarte din Backblaze.`;
+            if (typeof showToast === "function") showToast(message, "success");
+            else alert(message);
+        } catch (error) {
+            console.error("syncAdminReports:", error);
+            if (typeof showToast === "function") showToast(error.message || "Rapoartele nu au putut fi sincronizate.", "error");
+            else alert(error.message || "Rapoartele nu au putut fi sincronizate.");
+        } finally {
+            if (button) { button.disabled = false; button.textContent = "🔄 SINCRONIZEAZĂ RAPOARTE"; }
         }
     }
 
@@ -24243,39 +24184,43 @@ const query =
 
     async function downloadAdminReportsTxt() {
         const button = document.getElementById("admin-download-reports");
-        if (button) {
-            button.disabled = true;
-            button.textContent = "⏳ SE PREGĂTEȘTE FIȘIERUL...";
-        }
+        if (button) { button.disabled = true; button.textContent = "⏳ SE PREGĂTEȘTE FIȘIERUL..."; }
         try {
-            const response = await fetch("/api/admin/reports/export.txt", {
-                method: "GET",
-                credentials: "include",
-                cache: "no-store"
-            });
-            if (!response.ok) {
-                let message = "Rapoartele nu au putut fi descărcate.";
-                try { const data = await response.json(); message = data.error || message; } catch {}
-                throw new Error(message);
+            const reports = await fetchAllAdminReportsPaged();
+            const byAuthor = new Map();
+            for (const report of reports) {
+                const id = String(report.authorId || report.userId || report.discordId || "necunoscut");
+                if (!byAuthor.has(id)) byAuthor.set(id, []);
+                byAuthor.get(id).push(report);
             }
-            const blob = await response.blob();
+            const sections = [];
+            for (const [authorId, rows] of byAuthor) {
+                const first = rows[0] || {};
+                const ordinary = rows.filter(r => !["RAZIE", "ANTRENAMENT"].includes(String(r.type || "").toUpperCase()));
+                const raids = rows.filter(r => ["RAZIE", "ANTRENAMENT"].includes(String(r.type || "").toUpperCase()));
+                sections.push([
+                    `CALL SIGN: ${first.authorCallsign || first.callSign || first.callsign || "Nespecificat"}`,
+                    `ID: ${authorId}`,
+                    `NUME: ${first.authorName || first.displayName || first.username || "Nespecificat"}`,
+                    "", "RAPOARTE:",
+                    ...ordinary.map((r, i) => `${i + 1}. ${r.title || r.description || r.details || "Raport"} — ${r.createdAt || ""}`),
+                    "", "RAZII / ANTRENAMENTE:",
+                    ...raids.map((r, i) => `${i + 1}. ${r.title || r.description || r.details || r.type} — ${r.createdAt || ""}`),
+                    "\r\n------------------------------------------------------------\r\n"
+                ].join("\r\n"));
+            }
+            const blob = new Blob(["\uFEFF" + sections.join("\r\n")], { type: "text/plain;charset=utf-8" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
-            link.href = url;
-            link.download = "rapoarte-politie.txt";
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+            link.href = url; link.download = "rapoarte-politie.txt";
+            document.body.appendChild(link); link.click(); link.remove();
             setTimeout(() => URL.revokeObjectURL(url), 1500);
-            if (typeof showToast === "function") showToast("Fișierul cu rapoarte a fost descărcat.", "success");
+            if (typeof showToast === "function") showToast(`Au fost exportate ${reports.length} rapoarte.`, "success");
         } catch (error) {
             if (typeof showToast === "function") showToast(error.message || "Descărcarea a eșuat.", "error");
             else alert(error.message || "Descărcarea a eșuat.");
         } finally {
-            if (button) {
-                button.disabled = false;
-                button.textContent = "⬇ DESCARCĂ RAPOARTE (.TXT)";
-            }
+            if (button) { button.disabled = false; button.textContent = "⬇ DESCARCĂ RAPOARTE (.TXT)"; }
         }
     }
 
@@ -24285,73 +24230,16 @@ const query =
     }
 
     async function loadAdminReports() {
-
-        if (
-            Number(
-                currentUser?.rankLevel ||
-                0
-            ) < 10
-        ) {
-
-            return;
-        }
-
-
+        if (Number(currentUser?.rankLevel || 0) < 10) return;
         try {
-
-            const response =
-                await fetch(
-                    "/api/admin/reports",
-                    {
-                        credentials:
-                            "include",
-
-                        cache:
-                            "no-store"
-                    }
-                );
-
-
-            if (!response.ok) {
-
-                return;
-            }
-
-
-            const data =
-                await response.json();
-
-
-            const reports =
-                data.reports ||
-                [];
-
-
-            document
-                .getElementById(
-                    "admin-total"
-                )
-                .textContent =
-                    reports.length;
-
-
-            renderReports(
-                "admin-reports-container",
-                reports,
-                true
-            );
-
+            const reports = await fetchAllAdminReportsPaged();
+            const total = document.getElementById("admin-total");
+            if (total) total.textContent = reports.length;
+            renderReports("admin-reports-container", reports, true);
+        } catch (error) {
+            console.error("loadAdminReports:", error);
         }
-        catch (error) {
-
-            console.error(
-                "loadAdminReports:",
-                error
-            );
-        }
-
     }
-
 
 
     /* =========================================================
