@@ -1927,7 +1927,7 @@ async function readB2JSON(key) {
 // ======================================================
 
 const B2_REPORT_CACHE_TTL_MS =
-    60 * 1000; // 1 minut: evităm afișarea unei liste vechi de rapoarte
+    6 * 60 * 60 * 1000; // 6 ore
 
 let b2ReportCache = {
     reports: [],
@@ -1989,9 +1989,6 @@ async function loadAllB2ReportsFromStorage() {
         .filter(key => key.endsWith(".json"));
 
     const reports = [];
-    let failedReads = 0;
-
-    console.log(`[B2 REPORTS] Au fost găsite ${keys.length} fișiere JSON curente în reports/. Încep încărcarea completă.`);
 
     // Loturi mici ca să nu trimitem foarte multe request-uri simultan.
     const batchSize = 6;
@@ -2012,27 +2009,13 @@ async function loadAllB2ReportsFromStorage() {
                 batch.map(
                     async key => {
                         try {
-                            const rawReport = await readB2JSON(key);
-                            const mappedReport = mapB2Report(rawReport);
-
-                            // Calea B2 reports/<DiscordID>/<reportId>.json este sursa
-                            // stabilă pentru autor și ID, chiar dacă un JSON vechi are câmpuri lipsă.
-                            const pathMatch = String(key).match(/^reports\/(\d{17,20})\/([^/]+)\.json$/);
-                            if (pathMatch && mappedReport) {
-                                if (!mappedReport.authorId) mappedReport.authorId = pathMatch[1];
-                                if (!mappedReport.id) mappedReport.id = pathMatch[2];
-                            }
-
-                            if (!mappedReport || !mappedReport.id) {
-                                failedReads += 1;
-                                console.error("B2 report invalid (lipsește ID-ul):", key);
-                                return null;
-                            }
-
-                            return mappedReport;
+                            return mapB2Report(
+                                await readB2JSON(
+                                    key
+                                )
+                            );
                         }
                         catch (error) {
-                            failedReads += 1;
                             console.error(
                                 "B2 report read error:",
                                 key,
@@ -2050,7 +2033,6 @@ async function loadAllB2ReportsFromStorage() {
         );
     }
 
-    console.log(`[B2 REPORTS] Încărcare terminată: ${reports.length}/${keys.length} rapoarte valide; ${failedReads} eșecuri la citire.`);
     return sortB2Reports(reports);
 }
 
@@ -2077,7 +2059,7 @@ async function getAllB2ReportsCached() {
                 };
 
                 console.log(
-                    `[B2 CACHE] ${reports.length} rapoarte încărcate în cache (TTL 1 minut).`
+                    `[B2 CACHE] ${reports.length} rapoarte încărcate în cache pentru 6 ore.`
                 );
 
                 return reports;
@@ -16326,28 +16308,6 @@ app.post("/api/transfers/:id/decision", requireAuth, async (req, res) => {
 
 
 // ======================================================
-// 404 API
-// ======================================================
-
-app.use(
-    "/api",
-
-    (
-        req,
-        res
-    ) => {
-
-        res
-            .status(404)
-            .json({
-                error:
-                    "Ruta API nu există."
-            });
-    }
-);
-
-
-// ======================================================
 // ERROR HANDLER
 // ======================================================
 
@@ -16460,12 +16420,6 @@ if (process.env.CLOUDFLARE_WORKERS !== "1") {
     );
 }
 
-module.exports = {
-    app,
-    configureB2CorsForDirectUpload,
-    syncApprovedLeaveDiscordRoles,
-    initMeetingAttendanceScheduler
-};
 // ======================================================
 // SINCRONIZEAZĂ RAPOARTE - ADMIN
 // Reîncarcă rapoartele din B2 și reconstruiește numerotarea.
@@ -16509,5 +16463,16 @@ app.post(
     }
 );
 
+// ======================================================
+// 404 API — trebuie să fie DUPĂ toate rutele API.
+// ======================================================
+app.use("/api", (req, res) => {
+    res.status(404).json({ error: "Ruta API nu există." });
+});
 
-
+module.exports = {
+    app,
+    configureB2CorsForDirectUpload,
+    syncApprovedLeaveDiscordRoles,
+    initMeetingAttendanceScheduler
+};
