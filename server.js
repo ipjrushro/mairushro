@@ -1843,11 +1843,6 @@ function mapB2Report(report) {
         description:
             report.description,
 
-        // Detaliile operaționale (inclusiv informațiile de razie/antrenament)
-        // trebuie păstrate la normalizarea datelor citite din B2.
-        details:
-            report.details || report.raidDetails || report.raid_details || null,
-
         coOrganizer:
             report.coOrganizer ||
             report.co_organizer ||
@@ -1932,7 +1927,7 @@ async function readB2JSON(key) {
 // ======================================================
 
 const B2_REPORT_CACHE_TTL_MS =
-    60 * 1000; // 1 minut: evită profiluri și razii rămase cu date vechi
+    60 * 1000; // 1 minut: profilurile nu rămân cu rapoarte vechi ore întregi
 
 let b2ReportCache = {
     reports: [],
@@ -2014,11 +2009,20 @@ async function loadAllB2ReportsFromStorage() {
                 batch.map(
                     async key => {
                         try {
-                            return mapB2Report(
-                                await readB2JSON(
-                                    key
-                                )
-                            );
+                            const storedReport = await readB2JSON(key);
+                            const mappedReport = mapB2Report(storedReport);
+
+                            // Calea B2 este reports/<DiscordID>/<reportId>.json.
+                            // Pentru profil, ID-ul din folder este sursa de adevăr:
+                            // unele rapoarte vechi pot avea authorId lipsă sau greșit în JSON.
+                            const pathMatch = String(key).match(/^reports\/(\d{17,20})\/[^/]+\.json$/);
+                            const authorIdFromPath = pathMatch ? pathMatch[1] : "";
+
+                            if (mappedReport && authorIdFromPath) {
+                                mappedReport.authorId = authorIdFromPath;
+                            }
+
+                            return mappedReport;
                         }
                         catch (error) {
                             console.error(
@@ -5582,106 +5586,6 @@ async function getNumberedAdminReports({ force = false } = {}) {
         reportNumber: numberById.get(String(report.id)) || null
     }));
 }
-
-// ======================================================
-// EXPORT RAPOARTE - ADMIN (Notepad/TXT)
-// Include TOT personalul Poliției din Discord, inclusiv membrii
-// care nu au încă rapoarte, apoi atașează rapoartele fiecăruia.
-// ======================================================
-app.get(
-    "/api/admin/reports/export.txt",
-    requireAdmin,
-    async (req, res) => {
-        if (!ensureB2(res)) return;
-
-        try {
-            const reports = await getNumberedAdminReports({ force: true });
-            const members = await fetchAllGuildMembersForPersonnel();
-            const memberById = new Map();
-            const peopleById = new Map();
-
-            const parseCallsign = nickname => {
-                const value = String(nickname || "").trim();
-                // Acceptă [660], (660), [P-660], [D-660] la începutul poreclei.
-                const match = value.match(/^\s*[\[(]\s*(?:(?:P|D)-\s*)?(\d{1,3})\s*[\])]\s*/i);
-                return {
-                    callsign: match ? match[1].padStart(3, "0") : "-",
-                    name: value.replace(/^\s*[\[(]\s*(?:(?:P|D)-\s*)?\d{1,3}\s*[\])]\s*/i, "").trim()
-                };
-            };
-
-            // Personalul este filtrat după gradele Poliției, nu după cine a făcut rapoarte.
-            for (const rawMember of (Array.isArray(members) ? members : [])) {
-                const mapped = mapDiscordPersonnelMember(rawMember);
-                if (!mapped) continue;
-                const user = rawMember?.user || {};
-                const id = String(mapped.id || user.id || "");
-                if (!id) continue;
-                const nickname = String(rawMember.nick || user.global_name || user.username || mapped.displayName || "").trim();
-                const parsed = parseCallsign(nickname);
-                const person = {
-                    id,
-                    callsign: parsed.callsign,
-                    name: parsed.name || user.username || mapped.displayName || "Necunoscut",
-                    rank: mapped.rank || "-",
-                    reports: []
-                };
-                peopleById.set(id, person);
-                memberById.set(id, person);
-            }
-
-            // Adăugăm și autorii rapoartelor care nu mai apar în lista Discord,
-            // astfel încât rapoartele vechi să nu dispară din export.
-            for (const report of reports) {
-                const id = String(report.authorId || "");
-                if (!id) continue;
-                if (!peopleById.has(id)) {
-                    peopleById.set(id, {
-                        id,
-                        callsign: "-",
-                        name: String(report.authorName || report.authorUsername || "Necunoscut"),
-                        rank: String(report.authorRank || "-"),
-                        reports: []
-                    });
-                }
-                peopleById.get(id).reports.push(report);
-            }
-
-            const clean = value => String(value ?? "-").replace(/[\r\n]+/g, " ").trim() || "-";
-            const people = [...peopleById.values()].sort((a, b) => {
-                const ca = String(a.callsign || "").replace(/\D/g, "");
-                const cb = String(b.callsign || "").replace(/\D/g, "");
-                if (ca && cb && Number(ca) !== Number(cb)) return Number(ca) - Number(cb);
-                if (ca && !cb) return -1;
-                if (!ca && cb) return 1;
-                return String(a.name).localeCompare(String(b.name), "ro");
-            });
-
-            const sections = people.map(person => {
-                const sorted = [...person.reports].sort((a, b) => {
-                    const diff = new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
-                    return diff || String(a.id || "").localeCompare(String(b.id || ""));
-                });
-                const normal = sorted.filter(r => !["RAZIE", "ANTRENAMENT"].includes(String(r.type || "").toUpperCase()));
-                const raids = sorted.filter(r => String(r.type || "").toUpperCase() === "RAZIE");
-                const trainings = sorted.filter(r => String(r.type || "").toUpperCase() === "ANTRENAMENT");
-                const formatRows = list => list.length
-                    ? list.map((r, i) => `  ${i + 1}. ${clean(r.title)} | ${clean(r.createdAtFormatted || r.createdAt)}${r.description ? ` | ${clean(r.description)}` : ""}`).join("\n")
-                    : "  Nu există.";
-                return `CALL SIGN: ${clean(person.callsign)}\nID: ${person.id}\nNUME: ${clean(person.name)}\nGRAD: ${clean(person.rank)}\n\nRAPOARTE (${normal.length}):\n${formatRows(normal)}\n\nRAZII (${raids.length}):\n${formatRows(raids)}\n\nANTRENAMENTE (${trainings.length}):\n${formatRows(trainings)}`;
-            });
-
-            const output = "\uFEFFRAPOARTE POLIȚIA ROMÂNĂ\nGenerat: " + new Date().toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" }) + "\nPersonal inclus: " + people.length + "\nTotal rapoarte: " + reports.length + "\n\n" + (sections.join("\n\n" + "=".repeat(70) + "\n\n") || "Nu a fost găsit personal cu gradele Poliției.");
-            res.setHeader("Content-Type", "text/plain; charset=utf-8");
-            res.setHeader("Content-Disposition", 'attachment; filename="rapoarte-politie.txt"');
-            res.setHeader("Cache-Control", "no-store");
-            return res.status(200).send(output);
-        } catch (error) {
-            console.error("[Export rapoarte] Eroare:", error);
-            return res.status(500).json({ error: "Rapoartele și personalul nu au putut fi exportate. Verifică accesul botului la lista de membri Discord." });
-        }
-    }
-);
 
 // ======================================================
 // TOATE RAPOARTELE - ADMIN
