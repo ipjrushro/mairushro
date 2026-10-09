@@ -197,7 +197,7 @@ async function listNativeFileVersionsPage(env, prefix) {
   const r = await fetch(`${apiUrl}/b2api/v3/b2_list_file_versions`, {
     method: "POST",
     headers: { Authorization: token, "Content-Type": "application/json" },
-    body: JSON.stringify({ bucketId: id, prefix, maxFileCount: 1000 })
+    body: JSON.stringify({ bucketId: id, prefix, maxFileCount: 100 })
   });
   const text = await r.text();
   let data = null;
@@ -223,17 +223,18 @@ async function deleteNativeFileVersion(apiUrl, token, file) {
 async function deleteNativeFilesInBatches(apiUrl, token, files) {
   // Loturi mici ca să nu bombardăm B2. Pentru volume foarte mari continuăm
   // secvențial pe loturi; fiecare versiune este ștearsă definitiv.
-  const concurrency = 8;
+  const concurrency = 2;
   for (let i = 0; i < files.length; i += concurrency) {
-    await Promise.all(
-      files.slice(i, i + concurrency).map(file => deleteNativeFileVersion(apiUrl, token, file))
-    );
+    // Serializăm aproape complet operațiile pentru a limita subcererile per invocare.
+    for (const file of files.slice(i, i + concurrency)) {
+      await deleteNativeFileVersion(apiUrl, token, file);
+    }
   }
 }
 
 async function deleteReportStorageBatch(env) {
   // Maximum 20 suppressions per request: stay safely under the Worker subrequest limit.
-  const batchSize = 20;
+  const batchSize = 3;
   const reportListing = await listNativeFileVersionsPage(env, "reports/");
   if (reportListing.files.length) {
     const batch = reportListing.files.slice(0, batchSize);
