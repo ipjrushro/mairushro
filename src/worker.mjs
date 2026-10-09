@@ -185,7 +185,8 @@ async function metadataUpload(request, env, url) {
 // Folosește aceleași credențiale/API care funcționează deja la upload.
 // Ștergem toate versiunile pentru reports/ și images/, nu doar ultima versiune.
 // ======================================================
-async function listNativeFileVersions(env, prefix) {
+async function listNativeFileVersionsPage(env, prefix) {
+  // O singură pagină per invocare Worker: nu enumerăm toate versiunile dintr-un foc.
   const auth = await authorizeB2(env);
   const storage = storageApi(auth);
   const apiUrl = storage?.apiUrl || storage?.api_url;
@@ -193,45 +194,20 @@ async function listNativeFileVersions(env, prefix) {
   const id = await bucketId(auth, env);
   if (!apiUrl || !token || !id) throw new Error("Răspuns B2 authorize incomplet pentru ștergere.");
 
-  const files = [];
-  let startFileName = null;
-  let startFileId = null;
-  let pages = 0;
+  const r = await fetch(`${apiUrl}/b2api/v3/b2_list_file_versions`, {
+    method: "POST",
+    headers: { Authorization: token, "Content-Type": "application/json" },
+    body: JSON.stringify({ bucketId: id, prefix, maxFileCount: 1000 })
+  });
+  const text = await r.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : {}; } catch {}
+  if (!r.ok || !data) throw new Error(`B2 list file versions HTTP ${r.status}: ${text.slice(0, 500)}`);
 
-  while (true) {
-    pages += 1;
-    if (pages > 200) throw new Error(`Prea multe pagini B2 pentru ${prefix}.`);
-
-    const body = {
-      bucketId: id,
-      prefix,
-      maxFileCount: 1000
-    };
-    if (startFileName) body.startFileName = startFileName;
-    if (startFileId) body.startFileId = startFileId;
-
-    const r = await fetch(`${apiUrl}/b2api/v3/b2_list_file_versions`, {
-      method: "POST",
-      headers: { Authorization: token, "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-    const text = await r.text();
-    let data = null;
-    try { data = text ? JSON.parse(text) : {}; } catch {}
-    if (!r.ok || !data) throw new Error(`B2 list file versions HTTP ${r.status}: ${text.slice(0, 500)}`);
-
-    for (const f of (data.files || [])) {
-      const fileName = String(f.fileName || "");
-      const fileId = String(f.fileId || "");
-      if (fileName.startsWith(prefix) && fileId) files.push({ fileName, fileId });
-    }
-
-    startFileName = data.nextFileName || null;
-    startFileId = data.nextFileId || null;
-    if (!startFileName) break;
-  }
-
-  return { auth, apiUrl, token, files };
+  const files = (data.files || [])
+    .filter(f => String(f.fileName || "").startsWith(prefix) && f.fileId)
+    .map(f => ({ fileName: String(f.fileName), fileId: String(f.fileId) }));
+  return { apiUrl, token, files, hasMore: Boolean(data.nextFileName) };
 }
 
 async function deleteNativeFileVersion(apiUrl, token, file) {
@@ -255,28 +231,44 @@ async function deleteNativeFilesInBatches(apiUrl, token, files) {
   }
 }
 
-async function deleteAllReportStorage(env) {
-  // O singură autorizare/listare per prefix; folosim Native B2 API, nu S3 SigV4.
-  const reportListing = await listNativeFileVersions(env, "reports/");
-  const imageListing = await listNativeFileVersions(env, "images/");
+async function deleteReportStorageBatch(env) {
+  // Maximum 20 suppressions per request: stay safely under the Worker subrequest limit.
+  const batchSize = 20;
+  const reportListing = await listNativeFileVersionsPage(env, "reports/");
+  if (reportListing.files.length) {
+    const batch = reportListing.files.slice(0, batchSize);
+    await deleteNativeFilesInBatches(reportListing.apiUrl, reportListing.token, batch);
+    return {
+      success: true,
+      done: false,
+      deletedReports: batch.filter(x => x.fileName.endsWith(".json")).length,
+      deletedImages: 0,
+      deletedVersions: batch.length,
+      message: "Se șterg rapoartele..."
+    };
+  }
 
-  await deleteNativeFilesInBatches(reportListing.apiUrl, reportListing.token, reportListing.files);
-  await deleteNativeFilesInBatches(imageListing.apiUrl, imageListing.token, imageListing.files);
-
-  // Verificare finală. Dacă ceva a rămas, dashboard-ul primește eroare reală.
-  const remainingReports = await listNativeFileVersions(env, "reports/");
-  const remainingImages = await listNativeFileVersions(env, "images/");
-
-  if (remainingReports.files.length || remainingImages.files.length) {
-    throw new Error(
-      `Au rămas obiecte în B2: reports=${remainingReports.files.length}, images=${remainingImages.files.length}`
-    );
+  const imageListing = await listNativeFileVersionsPage(env, "images/");
+  if (imageListing.files.length) {
+    const batch = imageListing.files.slice(0, batchSize);
+    await deleteNativeFilesInBatches(imageListing.apiUrl, imageListing.token, batch);
+    return {
+      success: true,
+      done: false,
+      deletedReports: 0,
+      deletedImages: batch.length,
+      deletedVersions: batch.length,
+      message: "Se șterg imaginile..."
+    };
   }
 
   return {
-    deletedReports: reportListing.files.filter(x => x.fileName.endsWith(".json")).length,
-    deletedImages: imageListing.files.length,
-    deletedVersions: reportListing.files.length + imageListing.files.length
+    success: true,
+    done: true,
+    deletedReports: 0,
+    deletedImages: 0,
+    deletedVersions: 0,
+    message: "Toate rapoartele și imaginile au fost șterse."
   };
 }
 
@@ -302,11 +294,12 @@ export default {
         try { gate = await response.clone().json(); } catch {}
         if (gate?.nativeB2Delete === true) {
           try {
-            const result = await deleteAllReportStorage(env);
+            const result = await deleteReportStorageBatch(env);
             return Response.json({
-              success: true,
               ...result,
-              message: "Toate rapoartele și imaginile lor au fost șterse definitiv din Backblaze B2."
+              message: result.done
+                ? "Toate rapoartele și imaginile lor au fost șterse definitiv din Backblaze B2."
+                : result.message
             });
           } catch (e) {
             return Response.json({
