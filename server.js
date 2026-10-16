@@ -5467,30 +5467,14 @@ app.post(
                 error
             );
 
-            const cleanupKeys = [
-                ...uploadedImages.map(
-                    image =>
-                        image.key ||
-                        image.path
-                ),
-                metadataKey
-            ].filter(Boolean);
-
-            // În Cloudflare Workers nu apelăm deleteB2Keys (AWS SDK) în catch:
-            // dacă B2 a dat eroare, cleanup-ul AWS putea bloca Worker-ul și masca eroarea reală.
-            if (process.env.CLOUDFLARE_WORKERS !== "1") {
-                try {
-                    await deleteB2Keys(
-                        cleanupKeys
-                    );
-                }
-                catch (cleanupError) {
-                    console.error(
-                        "B2 report cleanup error:",
-                        cleanupError.message
-                    );
-                }
-            }
+            // IMPORTANT: nu ștergem automat obiecte din B2 când trimiterea
+            // raportului dă eroare. Dacă metadata a fost deja încărcată sau
+            // cheia coincide cu un raport existent, cleanup-ul putea elimina
+            // date. Ștergerea rapoartelor se face exclusiv prin butonul admin.
+            console.error(
+                "B2 report upload failed; păstrăm obiectele existente pentru a evita ștergerea automată.",
+                error.message
+            );
 
             return res.status(500).json({
                 error:
