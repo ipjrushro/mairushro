@@ -281,6 +281,7 @@ const REPORT_ORGANIZER_DEPARTMENTS = {
         { id: "1528758226416435217", name: "COMISAR ȘEF DIICOT", weight: 6 },
         { id: "1528758226416435219", name: "COORDONATOR DIICOT", weight: 7 },
         { id: "1528758226420633744", name: "PROCUROR DIICOT", weight: 8 },
+        { id: "1561429569314230363", name: "PROCUROR ADJUNCT DIICOT", weight: 8.5 },
         { id: "1528758226420633745", name: "PROCUROR ȘEF ADJUNCT DIICOT", weight: 9 },
         { id: "1528758226420633746", name: "PROCUROR ȘEF DIICOT", weight: 10 }
     ],
@@ -9410,6 +9411,7 @@ const HUB_DIICOT_ROLES = [
     { id: "1528758226420633746", name: "PROCUROR ȘEF", level: 13 },
     { id: "1528758226420633745", name: "PROCUROR ȘEF ADJUNCT", level: 12 },
     { id: "1528758226420633744", name: "PROCUROR", level: 11 },
+    { id: "1561429569314230363", name: "PROCUROR ADJUNCT DIICOT", level: 11.5 },
     { id: "1528758226416435219", name: "COORDONATOR", level: 10 },
     { id: "1528758226416435217", name: "COMISAR ȘEF", level: 9 },
     { id: "1528758226416435216", name: "COMISAR", level: 8 },
