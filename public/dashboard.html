@@ -23610,36 +23610,55 @@ const query =
        MY REPORTS
     ========================================================== */
 
+    async function fetchAllMyReportsPaged() {
+        const all = [];
+        let cursor = null;
+        let rounds = 0;
+
+        do {
+            rounds += 1;
+            if (rounds > 10000) {
+                throw new Error("Încărcarea rapoartelor a fost oprită: prea multe pagini.");
+            }
+
+            const endpoint = "/api/reports/my/page" +
+                (cursor ? "?cursor=" + encodeURIComponent(cursor) : "");
+            const response = await fetch(endpoint, {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store"
+            });
+
+            let data = {};
+            try { data = await response.json(); } catch {}
+            if (!response.ok) {
+                throw new Error(data.error || "Rapoartele nu au putut fi încărcate.");
+            }
+
+            if (Array.isArray(data.reports)) all.push(...data.reports);
+            cursor = data.nextCursor || null;
+        } while (cursor);
+
+        // B2 listează obiectele după cheie, nu după data raportului.
+        // Reordonăm lista completă cronologic înainte de afișare și statistici.
+        all.sort((a, b) => {
+            const ta = new Date(a.createdAt || 0).getTime();
+            const tb = new Date(b.createdAt || 0).getTime();
+            if (ta !== tb) return tb - ta;
+            return String(b.id || "").localeCompare(String(a.id || ""));
+        });
+
+        return all;
+    }
+
     async function loadMyReports() {
 
         try {
 
-            const response =
-                await fetch(
-                    "/api/reports/my",
-                    {
-                        credentials:
-                            "include",
-
-                        cache:
-                            "no-store"
-                    }
-                );
-
-
-            if (!response.ok) {
-
-                return;
-            }
-
-
-            const data =
-                await response.json();
-
-
-            const reports =
-                data.reports ||
-                [];
+            // Nu citim toate fișierele B2 într-o singură invocare Worker.
+            // Pagini de câte 20 evită limita de subcereri Cloudflare care
+            // apărea în jurul a 49-50 de rapoarte.
+            const reports = await fetchAllMyReportsPaged();
 
 
             document
