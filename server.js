@@ -11940,13 +11940,25 @@ app.post(
 
             // 2. Construim toate sloturile de Poliție, păstrând ID-urile existente.
             const byCallsign = new Map();
+            // Nu includem rândurile DIICOT sau alte departamente în sloturile Poliției.
             for (const row of rows) {
+                if (!isPoliceDocsRow(row)) continue;
                 const cs = normalizePoliceCallsign(row.callsign);
                 if (!cs) continue;
                 const list = byCallsign.get(cs.callsign) || [];
                 list.push(row);
                 byCallsign.set(cs.callsign, list);
             }
+
+            // discord_id are UNIQUE la nivelul întregului tabel, nu doar pentru Poliție.
+            // Păstrăm intacte înregistrările altor departamente și nu încercăm
+            // să atribuim în Poliție un cont deja folosit în afara sloturilor Poliției.
+            const discordIdsOutsidePolice = new Set(
+                rows
+                    .filter(row => !isPoliceDocsRow(row))
+                    .map(row => String(row.discord_id || '').trim())
+                    .filter(Boolean)
+            );
 
             const slotRows = [];
             let created = 0;
@@ -12035,6 +12047,9 @@ app.post(
             for (const member of orderedMembers) {
                 const discordId = String(member.user.id);
                 if (usedDiscord.has(discordId)) continue;
+                // Acest Discord ID este deja asociat unui rând DIICOT/altui departament.
+                // Nu îl mutăm și nu ștergem datele acelui departament.
+                if (discordIdsOutsidePolice.has(discordId)) continue;
 
                 const displayName = String(
                     member.nick || member.user?.global_name || member.user?.username || "Membru Poliție"
