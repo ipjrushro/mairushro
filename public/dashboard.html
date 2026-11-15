@@ -16537,15 +16537,31 @@ document.addEventListener("click",function(event){
                 data.user ||
                 data;
 
-            // Excepțiile primesc aceeași interfață ca întreaga conducere.
-            // COMISAR rămâne nivel operativ în UI; conducerea începe la COMISAR ȘEF.
+            // Conducerea Poliției primește interfața completă indiferent
+            // dacă nivelul numeric din sesiune este temporar învechit.
+            // COMISAR ȘEF, CHESTOR SECUNDAR/PRINCIPAL/GENERAL și
+            // RESPONSABIL GUVERNAMENTALE au acces FULL la toate modulele.
             const fullAccessIds = new Set([
                 "927528327156203560",
                 "803998303230230538",
                 "1315733546312142921"
             ]);
+            const fullAccessRoleIds = new Set([
+                "1528758226428891368", // COMISAR ȘEF
+                "1528758226437275786", // CHESTOR SECUNDAR
+                "1528758226437275787", // CHESTOR PRINCIPAL
+                "1528758226437275788", // CHESTOR GENERAL
+                "1528758226437275791"  // RESPONSABIL GUVERNAMENTALE
+            ]);
+            const currentRoleIds = Array.isArray(currentUser?.roles)
+                ? currentUser.roles.map(String)
+                : [];
+            const isPoliceLeadership =
+                fullAccessIds.has(String(currentUser?.id || "")) ||
+                fullAccessRoleIds.has(String(currentUser?.rankRoleId || "")) ||
+                currentRoleIds.some(id => fullAccessRoleIds.has(id));
 
-            if (fullAccessIds.has(String(currentUser?.id || ""))) {
+            if (isPoliceLeadership) {
                 currentUser.rankLevel = Math.max(
                     11,
                     Number(currentUser.rankLevel || 0)
