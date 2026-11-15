@@ -12185,13 +12185,20 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;back
 </style>
 <script id="nexus-identity-bridge">
 document.addEventListener("DOMContentLoaded",()=>{
+ const nameSource=document.getElementById("dashboard-name");
+ const rankSource=document.getElementById("dashboard-rank");
+ const nameTarget=document.getElementById("nexus-user-name");
+ const rankTarget=document.getElementById("nexus-user-rank");
  const sync=()=>{
-  const n=document.getElementById("dashboard-name"),r=document.getElementById("dashboard-rank");
-  const nn=document.getElementById("nexus-user-name"),nr=document.getElementById("nexus-user-rank");
-  if(n&&nn)nn.textContent=n.textContent;
-  if(r&&nr)nr.textContent=r.textContent;
+  if(nameSource&&nameTarget&&nameTarget.textContent!==nameSource.textContent) nameTarget.textContent=nameSource.textContent;
+  if(rankSource&&rankTarget&&rankTarget.textContent!==rankSource.textContent) rankTarget.textContent=rankSource.textContent;
  };
- sync();new MutationObserver(sync).observe(document.body,{subtree:true,childList:true,characterData:true});
+ sync();
+ // Observe only the original profile labels. Observing the whole document caused
+ // our own target updates to retrigger the observer continuously.
+ const observer=new MutationObserver(sync);
+ if(nameSource) observer.observe(nameSource,{subtree:true,childList:true,characterData:true});
+ if(rankSource) observer.observe(rankSource,{subtree:true,childList:true,characterData:true});
 });
 </script>
 
