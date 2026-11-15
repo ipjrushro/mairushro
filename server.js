@@ -2962,7 +2962,19 @@ function requireAuth(
 }
 
 
-// Acces complet: COMISAR ȘEF+ și cele două persoane desemnate.
+// Acces complet pentru conducerea POLIȚIEI:
+// COMISAR ȘEF, CHESTOR SECUNDAR, CHESTOR PRINCIPAL,
+// CHESTOR GENERAL și RESPONSABIL GUVERNAMENTALE.
+// Verificăm atât nivelul, cât și ID-urile rolurilor Discord, ca accesul
+// să nu depindă de un rankLevel rămas temporar învechit în sesiune.
+const POLICE_FULL_ACCESS_ROLE_IDS = new Set([
+    "1528758226428891368", // COMISAR ȘEF
+    "1528758226437275786", // CHESTOR SECUNDAR
+    "1528758226437275787", // CHESTOR PRINCIPAL
+    "1528758226437275788", // CHESTOR GENERAL
+    "1528758226437275791"  // RESPONSABIL GUVERNAMENTALE
+]);
+
 const POLICE_FULL_ACCESS_IDS = new Set([
     "803998303230230538",
     "927528327156203560",
@@ -2971,7 +2983,16 @@ const POLICE_FULL_ACCESS_IDS = new Set([
 
 function hasPoliceFullAccess(user) {
     if (!user) return false;
+
+    const userRoles = Array.isArray(user.roles)
+        ? user.roles.map(String)
+        : [];
+
+    const roleId = String(user.rankRoleId || "");
+
     return Number(user.rankLevel || 0) >= 11 ||
+        POLICE_FULL_ACCESS_ROLE_IDS.has(roleId) ||
+        userRoles.some(id => POLICE_FULL_ACCESS_ROLE_IDS.has(id)) ||
         POLICE_FULL_ACCESS_IDS.has(String(user.id || ""));
 }
 
